@@ -1,0 +1,999 @@
+Looking to the Future of Apache Polaris
+As Apache Polaris continues to evolve as a key part of the Iceberg ecosystem, its
+trajectory reflects both the maturity of open table formats and the growing demand
+for flexible, interoperable data catalogs.
+This chapter looks ahead to what’s next for Polaris. We begin by examining the
+broader Polaris ecosystem, including how Polaris is offered as a managed service by
+vendors such as Dremio and Snowflake. We then examine how Polaris integrates into
+the landscape of REST-compatible catalogs, facilitating seamless collaboration across
+engines and vendors. Finally, we delve into the Apache Polaris project roadmap,
+highlighting key features under development and the direction of community-led
+innovation. Understanding where Polaris is headed is essential for practitioners plan‐
+ning for the future of their Iceberg-based infrastructure.
+Apache Polaris is a community-driven, open source project. The features and func‐
+tionalities mentioned in this chapter are not part of Apache Polaris at the time of
+writing. There is no guarantee on whether, when, how, and to what extent these
+features and functionalities will be implemented. Only features and functionalities
+that are part of an official, binary release and not marked as experimental or the like
+are considered stable.
+Managed Polaris
+The Polaris ecosystem is rapidly expanding, supported by a vibrant community and
+significant contributions from Dremio and Snowflake. Apache Polaris’s implementa‐
+tion of the Iceberg REST Catalog specification makes it an ideal foundation for
+managed catalog offerings that prioritize openness, governance, and interoperability.
+Both Dremio and Snowflake offer managed catalog services—Dremio Catalog and
+203
+Snowflake Open Catalog—that simplify the process of adopting Polaris in production
+environments.
+As we introduced in Chapter 9, Dremio Catalog, powered by Apache Polaris, is an
+enterprise-grade solution that eliminates much of the operational overhead tradition‐
+ally associated with managing Iceberg catalogs. Dremio Catalog supports on-premise
+and hybrid cloud deployments, an essential capability for organizations with diverse
+infrastructure needs. It also incorporates built-in automation for table optimization,
+including compaction and vacuuming, which helps users avoid performance pitfalls
+caused by small files or outdated metadata.
+Additionally, tDremio has introduced features such as autonomous performance
+management and automatic clustering for Iceberg tables, making Polaris-backed
+catalogs easier to manage and more responsive to workload patterns.
+Snowflake Open Catalog, which we introduced in Chapter 8, is also based on Apache
+Polaris. It provides centralized access to Iceberg tables for Snowflake customers while
+maintaining compatibility with a range of Iceberg-aware engines through the REST
+interface. Snowflake’s implementation is integrated within its platform—including
+role-based access control (RBAC) and storage credential management—in order to
+maintain strong data governance without sacrificing openness.
+Managed Polaris implementations lower the barrier to entry for organizations explor‐
+ing Polaris, allowing them to adopt a production-ready REST catalog with mini‐
+mal setup. By reducing the operational complexity and providing enterprise-grade
+enhancements, these solutions ensure that Polaris is open, interoperable, highly
+accessible, and reliable for modern data architectures.
+The REST Catalog Ecosystem
+The Apache Iceberg REST Catalog Specification is a standardized interface that
+enables decoupled, cross-platform interaction with Iceberg tables.
+As we have noted throughout the book, the significance of the REST Catalog speci‐
+fication cannot be overstated. It eliminates the need for tight coupling between pro‐
+cessing engines and specific metastore implementations, enabling users to build open
+and flexible lakehouse solutions that scale across teams, tools, and infrastructures.
+Polaris’s full support for the REST API makes it a plug-and-play, highly interoperable
+catalog for any engine or service that supports the REST Catalog API. A growing
+number of tools natively support this standard, allowing you to use your preferred
+tools with zero friction.
+204 | Chapter 11: Looking to the Future of Apache Polaris
+Data Processing Engines
+Data processing engines are at the heart of the analytics and data engineering work‐
+flows that interact with Apache Polaris. These systems are responsible for ingesting,
+transforming, querying, and serving data at various scales—from real-time event
+pipelines to large-scale batch processing and interactive business intelligence (BI)
+workloads. Because Apache Polaris implements the Iceberg REST Catalog specifica‐
+tion, all of these engines and more can interact with it directly by using a standard,
+vendor-neutral API.
+Apache Spark
+Apache Spark is one of the most widely adopted engines for both batch and
+micro-batch processing. Its support for the Iceberg REST Catalog spec enables
+seamless interaction with Polaris-managed tables. Spark is frequently used for
+ETL pipelines, feature engineering, and training machine learning models, all
+of which benefit from Iceberg’s versioned, schema-evolving table format. Polaris
+brings Spark users a robust, REST-accessible metastore that eliminates the com‐
+plexity of traditional Hive-based catalogs.
+Apache Flink
+Flink is the go-to engine for real-time, low-latency stream processing. It inte‐
+grates with Polaris through the REST Catalog interface, allowing Flink jobs
+to write directly into Iceberg tables for use cases such as change data capture
+(CDC), real-time ETL, and streaming analytics. Polaris ensures that even rapidly
+changing data can be captured and governed using a consistent catalog, enabling
+Flink to participate in a unified lakehouse architecture.
+Dremio
+Dremio is a SQL engine designed for self-service analytics and data lake accel‐
+eration. It is deeply integrated with Apache Polaris in multiple ways. First, it
+can connect to any REST-compatible catalog, including Polaris, enabling federa‐
+tion across multiple Iceberg catalogs, as well as federation with databases, data
+warehouses, and data lakes. Second, Dremio offers a built-in, fully managed
+Polaris catalog, eliminating the need for users to provision or operate an external
+metastore. This integrated Polaris catalog works out of the box and is deployable
+in cloud, hybrid, or on-prem environments.
+Dremio also introduces autonomous performance management features for Ice‐
+berg tables, including automatic clustering, automated maintenance tasks (such
+as compaction and vacuuming), and query acceleration. These capabilities ensure
+that data remains optimized without requiring manual intervention, delivering
+consistent performance for BI tools, dashboards, and data products.
+The REST Catalog Ecosystem | 205
+Trino
+Trino is a distributed SQL engine known for its ability to federate queries across
+heterogeneous data sources. Through support for the Iceberg REST Catalog spec,
+Trino can connect to Polaris and execute high-performance analytical queries
+on Iceberg tables, while simultaneously accessing other sources such as object
+stores, JDBC-compatible databases, and more. Polaris provides a consistent and
+versioned metadata layer that enhances Trino’s reliability and governance.
+Presto
+Like Trino, Presto offers distributed query capabilities for large-scale data analy‐
+sis. It connects to Polaris using the REST Catalog interface, enabling read access
+to Iceberg tables for interactive and batch SQL workloads. Presto’s integration
+with Polaris enables it to efficiently leverage Iceberg’s schema evolution, time
+travel, and partition pruning features.
+StarRocks
+StarRocks is a massively parallel processing (MPP) analytical engine designed
+for real-time and multi-dimensional analytics. With native support for Iceberg
+via the REST Catalog interface, StarRocks can query Polaris-managed tables with
+high throughput and low latency. Its focus on sub-second analytics makes it ideal
+for operational dashboards and complex OLAP workloads.
+Streaming and Ingestion Platforms
+In modern data architectures, real-time data ingestion is a crucial capability, enabling
+use cases ranging from operational analytics to anomaly detection and personalized
+experiences. Apache Polaris, with its support for the Apache Iceberg REST Catalog
+specification, can serve as the destination for streaming data ingested through various
+event-driven platforms. These platforms enable the writing of change data capture
+(CDC) events and real-time updates into Iceberg tables governed by Polaris, provid‐
+ing a unified, consistent, and up-to-date lakehouse.
+Kafka Connect
+Kafka Connect is a widely used framework for integrating Apache Kafka with
+external systems. It provides a declarative and scalable way to capture and push
+streaming data into data lakes, warehouses, and other storage systems. Through
+Iceberg sink connectors that support the REST Catalog spec, Kafka Connect can
+write streaming records directly into Polaris-managed Iceberg tables. This is ideal
+for use cases such as log ingestion, CDC pipelines, and IoT data collection, where
+event data needs to be captured and queried with strong consistency and schema
+control.
+206 | Chapter 11: Looking to the Future of Apache Polaris
+Confluent
+Confluent—the commercial distribution of Apache Kafka—builds on Kafka
+Connect and adds robust enterprise capabilities including governance, schema
+registry, security, and monitoring. With support for Iceberg and REST-
+compatible catalogs, Confluent pipelines can ingest streaming data into Polaris
+with minimal configuration. Organizations using Confluent gain operational
+reliability and visibility while leveraging Polaris’s table versioning, time travel,
+and access controls for downstream analytics and compliance.
+Redpanda
+Redpanda is a Kafka-compatible, high-performance event streaming platform
+built from the ground up in C++. Known for its low latency, durability, and
+operational simplicity, Redpanda can integrate with Polaris via REST-compliant
+Iceberg sinks. This allows Redpanda to serve as a drop-in Kafka alternative for
+real-time data delivery into the Polaris catalog. Use cases such as financial tick
+data, observability streams, and high-frequency logging benefit from Redpanda’s
+performance characteristics when paired with Polaris for governed table storage.
+Estuary
+Estuary is a real-time data integration and pipeline platform that specializes in
+CDC and streaming ETL. It provides an intuitive interface and rich connectors
+for syncing data across operational databases, SaaS tools, and data lakes. With
+native Iceberg support through the REST Catalog interface, Estuary enables
+users to ingest fresh data into Polaris-managed tables in near-real time. This is
+particularly useful for powering up-to-date analytics, machine learning features,
+and dashboarding with strong data consistency and minimal lag.
+Other Data-Stack Tools
+Beyond processing engines and streaming platforms, Apache Polaris is supported
+by a broad and evolving set of tools that enhance metadata management, analytics,
+governance, and developer productivity. These tools leverage the Iceberg REST Cata‐
+log specification to integrate seamlessly with Polaris, enabling a rich, interconnected
+ecosystem. This section highlights additional notable tools that work with Polaris,
+expanding its utility across the modern data stack.
+DuckDB
+DuckDB is an in-process OLAP database designed for local analytics and proto‐
+typing. With support for reading Iceberg tables via REST-compatible catalogs,
+DuckDB can be used to explore Polaris-managed datasets directly from a develo‐
+per’s laptop or notebook environment. It’s particularly valuable for data scientists
+and analysts performing rapid experimentation, ad hoc queries, or local valida‐
+tion of production datasets.
+The REST Catalog Ecosystem | 207
+Polars
+Polars is a DataFrame library implemented in Rust with bindings for Python. It
+offers powerful data manipulation capabilities and is well-suited for use in data
+science and machine learning pipelines. Through its support for Iceberg and
+REST Catalogs, Polars can access Polaris-registered tables efficiently, bringing
+structured and versioned data into advanced analytical workflows with minimal
+friction.
+DataHub
+DataHub is an open source metadata platform that provides centralized search,
+lineage tracking, and governance. It integrates with Polaris via the Iceberg REST
+Catalog specification, allowing teams to visualize and manage metadata for Ice‐
+berg tables in a unified user interface. DataHub helps organizations answer key
+questions about data provenance, schema evolution, and usage patterns, thereby
+strengthening governance and enabling trusted analytics.
+The Apache Polaris Roadmap
+Apache Polaris is evolving rapidly, with an ambitious and community-driven road‐
+map that reflects the priorities of a broad set of contributors, including users, ven‐
+dors, and engine developers. The roadmap aims to solidify Polaris as a foundational
+catalog in the open data ecosystem, while continuously expanding its capabilities
+across governance, performance, security, and interoperability.
+The roadmap is not a rigid release schedule but rather a transparent articulation of
+the project’s long-term vision and current focus areas. Features are grouped into
+categories, including core catalog functionality, security and governance, catalog
+federation, observability, and AI/ML support. Many enhancements are already gener‐
+ally available (GA), while others are in active development or planned for future
+milestones.
+In this section, we examine the most significant roadmap items that will shape the
+future of Apache Polaris. Each subsection highlights what the feature is, why it
+matters, and how it fits into the broader data platform strategy.
+Generic Table Support
+One of the most impactful and forward-looking additions to the Apache Polaris road‐
+map is support for Generic Tables (Initial Feature release in 1.0). This foundational
+capability expands Polaris beyond its current scope, which is currently limited to
+Iceberg. Until now, Polaris has operated solely as a catalog for Apache Iceberg tables
+via the Iceberg REST Catalog API. However, many organizations rely on multiple
+table formats across their data ecosystems, notably Delta Lake and Apache Hudi, and
+require a unified governance and cataloging layer that is not tied to a single format.
+208 | Chapter 11: Looking to the Future of Apache Polaris
+Generic Table Support addresses this need by allowing Polaris to register non-Iceberg
+tables, such as Delta, Hudi, or raw file-based tables, alongside Iceberg tables within
+a shared namespace and governance model. This creates new opportunities for inter‐
+operability across engines, without requiring all workloads to conform to Iceberg.
+The primary motivation for introducing Generic Tables is interoperability. Engines
+like Apache Spark, Trino, and Snowflake often interact with a mix of table formats. By
+enabling Polaris to manage these diverse formats, users gain a centralized, consistent,
+and format-agnostic catalog, which reduces operational overhead and promotes data
+governance best practices.
+Key goals of the initial implementation include:
+• Support for registering and managing non-Iceberg tables as first-class entities in
+•
+Polaris
+• A REST API for basic operations: create, load, drop, and list Generic Tables
+•
+•
+• A dedicated Spark Catalog plugin to allow Spark 3.5+ to interact with Polaris-
+managed Generic Tables
+• Clear separation of REST endpoints between Iceberg and Generic Table opera‐
+•
+tions to maintain API integrity
+API and architecture overview
+Generic Tables in Polaris are managed through a new set of REST endpoints (/
+generic-tables) that exist in parallel to the Iceberg REST endpoints. These APIs
+support basic operations:
+CreateGenericTable
+Registers a table with a given name, format (e.g., “delta”), and metadata proper‐
+ties like location
+LoadGenericTable
+Retrieves metadata for a Generic Table
+DropGenericTable
+Removes a registered Generic Table
+ListGenericTables
+Lists all Generic Tables in a namespace
+The design avoids overloading the Iceberg APIs to preserve the semantic clarity of
+each specification. For example, a loadTable call must explicitly target either the
+Iceberg or Generic Table endpoint, ensuring engines and users receive predictable
+behavior.
+The Apache Polaris Roadmap | 209
+Spark integration
+A notable component of the Generic Table initiative is the Polaris Spark Catalog
+Plugin. This plugin allows Spark to interact with both Iceberg and Generic Tables in
+Polaris through a unified interface. It can:
+• Route create, drop, and load operations to the appropriate REST endpoint.
+•
+• Construct Spark table objects using returned metadata.
+•
+• Defer schema inference and transformation logic to the client (e.g., Spark).
+•
+Initial support focuses on Spark 3.5, with a runtime package (polaris-spark-
+runtime-3.5_2.12) and configuration options for easy deployment.
+Governance and identity model
+Generic Tables integrate with Polaris’s existing governance model. They support
+standard table-level privileges (e.g., TABLE_CREATE, TABLE_DROP) and are organized
+within namespaces alongside Iceberg tables and views. Name uniqueness is enforced
+within a namespace, ensuring no conflicts across different entity types.
+Looking ahead
+While the MVP focuses on basic lifecycle management, the roadmap includes plans
+to extend Generic Table support with:
+• Metadata converters to dynamically generate Iceberg-compatible metadata from
+•
+Delta or file-based tables
+•
+• Enhanced read capabilities via the Iceberg REST API (e.g., reading Delta tables
+after conversion)
+• Expanded engine integrations beyond Spark
+•
+This feature lays the groundwork for proper multi-format governance within Polaris,
+unlocking robust hybrid lakehouse architectures where Iceberg, Delta, and other
+formats coexist under unified control.
+In essence, Generic Table support transforms Polaris from an Iceberg-only catalog
+into a format-flexible metadata platform, reflecting the diverse realities of production
+data environments and Polaris’s commitment to openness and extensibility.
+Policy Store
+As organizations scale their use of lakehouse architectures, governance becomes a
+critical pillar, not just for security and compliance but also for operational efficiency.
+In line with this need, the Apache Polaris roadmap introduces a powerful Policy
+Store, which positions Polaris as more than just a metadata catalog. It becomes a
+210 | Chapter 11: Looking to the Future of Apache Polaris
+centralized, versioned repository for declarative policy definitions governing access
+control, data lifecycle, and operational behavior across the lakehouse.
+The vision behind the Polaris Policy Store is to enable centralized policy definition
+and lifecycle management while delegating enforcement to the execution engines
+(e.g., Spark, Snowflake, Dremio). This clear separation of concerns ensures that
+Polaris remains lightweight and scalable, while engines efficiently apply policies at
+query or processing time.
+This design caters to a wide range of governance use cases, such as:
+• Snapshot retention enforcement for compliance
+•
+• Automated compaction policies for optimizing performance
+•
+• Row-level access policies for secure data access control
+•
+Each policy is tied to tangible data assets—such as catalogs, namespaces, tables, and
+views—and can be inherited across entity hierarchies to simplify administration and
+promote consistency.
+Architecture and key capabilities
+Policies are first-class entities within Polaris, grouped under namespaces and gov‐
+erned by fine-grained privileges. Core capabilities of the Policy Store include:
+Flexible policy types and custom schemas
+Polaris supports predefined policy types such as system.compaction, system
+.snapshot_retention, and system.row_access_policy, each with its own
+schema and versioning. It also allows custom policy types (e.g., custom
+.myorg.data_masking) to address domain-specific requirements.
+Policy inheritance
+Policies can be defined at the catalog, namespace, or table level. Inheritance rules
+ensure that global governance can be enforced broadly, while still allowing for
+granular overrides. For example, a namespace-wide retention policy can apply to
+all tables unless superseded by a more specific policy at the table level.
+CRUD and versioning APIs
+Polaris introduces REST APIs to create, retrieve, update, and delete policies,
+attach them to resources, and manage policy versions. Versioning enables roll‐
+back to prior policy states, allowing for safe experimentation and change control.
+Secure, privilege-based access control
+Management of policies is governed by a detailed privilege model. Polaris dis‐
+tinguishes between privileges to read, write, delete, attach, and detach policies,
+The Apache Polaris Roadmap | 211
+ensuring that responsibilities can be clearly distributed across teams (e.g., gover‐
+nance vs. platform ops).
+Engine integration and policy evaluation
+Policies are stored and versioned in Polaris, but enforcement occurs in trusted
+engines. For example, Snowflake can evaluate a row-level access policy defined
+in Polaris at query runtime. The roadmap includes mechanisms for synchronous
+policy-table loading to prevent discrepancies in policy enforcement during reads.
+Validation and pluggability
+Polaris includes schema validation to prevent invalid policies from being created
+or attached. It also supports a pluggable validator framework, allowing organiza‐
+tions to enforce custom rules for specific policy types.
+Looking ahead
+The Policy Store roadmap sets the foundation for enterprise-grade governance within
+Polaris. Future expansions may include:
+• Tag-based policy assignments (e.g., apply retention to all tables tagged “PII”)
+•
+• Deeper integrations with external policy systems like Apache Ranger
+•
+•
+• Support for policy languages such as Rego or Cedar for advanced logic
+expression
+By embedding policy definitions directly into the catalog layer, Apache Polaris pro‐
+vides a single source of truth for both data and governance, streamlining security,
+compliance, and operational consistency in Iceberg-based lakehouses. As organiza‐
+tions seek to unify policy management across multiple engines and environments,
+this feature positions Polaris as a cornerstone of open data governance.
+Table Maintenance Framework
+As Iceberg adoption grows, so does the need for automated, scalable table mainte‐
+nance. Apache Polaris is evolving to meet this challenge with the introduction of
+a Table Maintenance Framework, a major roadmap item designed to streamline the
+configuration, inheritance, and enforcement of operational policies across large-scale
+data environments.
+This framework does not aim to run maintenance jobs itself; instead, it establishes
+Polaris as a metadata coordination layer for maintenance tasks executed by external
+Table Maintenance Systems (TMS), such as those running in Spark or Flink. This
+architecture ensures that Polaris remains lightweight while still playing a critical role
+in policy management, configuration, and governance visibility.
+212 | Chapter 11: Looking to the Future of Apache Polaris
+The Table Maintenance Framework provides:
+• A centralized place to define and manage table maintenance policies (e.g., com‐
+•
+paction, snapshot retention)
+•
+• Granular control over which tables are subject to maintenance and under what
+conditions
+• A communication model between Polaris and external TMSs that supports loose
+•
+coupling, scalability, and asynchronous coordination
+•
+• Support for inherited policies across catalog, namespace, and table levels, ensur‐
+ing consistent operational behavior
+Metadata-driven maintenance coordination
+Polaris enables TMS integration by exposing essential metadata and configuration
+values. This includes:
+• Table schemas, partition specs, and Iceberg-native statistics (e.g., snapshot sum‐
+•
+maries, partition stats)
+• Maintenance policies (e.g., compaction thresholds, retention windows)
+•
+• Enablement flags that indicate whether maintenance is active on a specific table
+•
+TMS systems then read this information and autonomously decide when and how
+to perform maintenance jobs. This separation of concerns ensures that the compu‐
+tationally intensive logic of optimization remains outside Polaris, while policy gover‐
+nance remains within the catalog.
+Flexible policy definition
+The maintenance framework supports defining policies at various levels:
+Catalog level
+behavior
+For universal policies such as snapshot expiration or default compaction
+Namespace level
+datasets)
+To scope operational policies across logical groupings of tables (e.g., all analytics
+Table level
+For precise performance tuning or lifecycle configurations
+Plans include support for tag-based grouping, allowing users to apply a policy to all
+tables tagged with a given label (e.g., env=prod or data_type=log).
+The Apache Polaris Roadmap | 213
+Policy configuration is expressed in JSON format and uses standardized keys such as:
+• polaris.maintenance.data-rewrite.policy•
+• polaris.maintenance.snapshot-retention.policy•
+• polaris.maintenance.metadata-rewrite.policy•
+These configurations can be embedded in entity properties or defined as first-class
+policy objects with clear privilege boundaries and versioning.
+Inheritance and governance
+Polaris implements policy inheritance and override logic, ensuring that table-level
+settings always take precedence over namespace or catalog-level defaults. This model
+enables administrators to define general rules globally, while allowing teams to fine-
+tune policies for specific datasets.
+To support governance and operational safety, Polaris introduces dedicated privileges
+for managing maintenance policies. This allows site reliability engineering (SRE)
+teams or platform operators to manage these settings without requiring full write
+access to table content, reducing risk and promoting best practices.
+Integration model with TMS
+Polaris and TMS interact through an asynchronous event-driven model. Polaris emits
+events on entity changes (e.g., table created or updated), which are consumed by one
+or more TMS systems to trigger maintenance workflows. Required API touchpoints
+include:
+loadTable and listTable
+To fetch metadata and understand current policies
+GetApplicablePolicies
+To retrieve inherited or assigned maintenance rules
+GetTablesPerPolicy
+To enable batch coordination of tables grouped by a shared policy
+This architecture ensures high scalability and flexibility, supporting multiple TMS
+implementations and catalogs concurrently without tight coupling.
+Looking ahead
+The Table Maintenance Framework lays the foundation for intelligent, automated
+data optimization within the Polaris ecosystem. Looking ahead, we expect to see:
+• Richer policy evolution features, such as time- or metric-based switching
+•
+214 | Chapter 11: Looking to the Future of Apache Polaris
+• Multiple policies per entity with prioritization logic
+•
+• Tighter integration with governance features, including audit trails and enforce‐
+•
+ment controls
+•
+• Unified policy language and APIs shared across access control, retention, and
+optimization settings
+By enabling Polaris to act as the authoritative source for operational policy meta‐
+data, this roadmap item makes Polaris indispensable for maintaining performant,
+cost-effective, and compliant Iceberg-based data lakes at scale.
+SQL and NoSQL Persistence
+One of the core strengths of Apache Polaris is its ability to manage metadata for
+large-scale, distributed data lakehouses. To meet the demands of diverse deployment
+environments—from ephemeral testing clusters to enterprise-grade, multi-region sys‐
+tems—the Polaris roadmap includes a major architectural enhancement: support for
+SQL and NoSQL persistence backends.
+This initiative decouples the core business logic of Polaris from its underlying storage
+engine, allowing deployments to choose the most suitable metastore, whether it’s a
+relational database like PostgreSQL or a NoSQL system like DynamoDB.
+The default Polaris implementation currently uses an in-memory store (based on
+PolarisTreeMapMetaStoreSessionImpl) for fast development and testing. However,
+production-grade environments require durable, scalable, and transactional storage
+systems. The new persistence architecture aims to:
+•
+• Support relational stores (via JDBC) for structured, ACID-compliant deploy‐
+ments
+• Enable NoSQL backends like MongoDB for flexible, cloud-native persistence
+•
+• Improve modularity by separating business logic from data access layers
+•
+This evolution is critical for making Polaris truly adaptable to any enterprise environ‐
+ment—whether deployed in the cloud, on-premises, or in hybrid configurations.
+Deployment flexibility
+With this enhancement, users will be able to choose the most appropriate storage
+backend based on their operational requirements:
+PostgreSQL and H2
+Ideal for environments requiring ACID transactions, strong consistency, and
+well-established tooling
+The Apache Polaris Roadmap | 215
+MongoDB, more NoSQL DBs possible
+Suited for cloud-native, high-availability architectures that prioritize scalability
+and fault tolerance over strict transactionality
+This opens the door for Polaris to be used in high-availability, distributed deploy‐
+ments and better aligns it with modern platform-as-a-service and multi-tenant
+requirements.
+Looking ahead
+This decoupling effort sets the stage for additional innovations:
+• Pluggable store backends via community-contributed implementations
+•
+• Easier scaling and HA, as metadata can now live in battle-tested distributed
+•
+datastores
+•
+• Seamless upgrades and migrations, with a clean abstraction layer between the
+catalog and storage
+By unifying the catalog’s persistence interface across storage paradigms, Polaris is tak‐
+ing a significant step toward becoming a truly backend-agnostic, cloud-ready catalog
+service, adaptable to a broad spectrum of organizational needs and environments.
+S3-Compatible Storage Support
+One of the most practical and highly anticipated roadmap features for Apache Polaris
+is its support for S3-compatible object stores. While Polaris already integrates with
+Amazon S3, enterprises increasingly operate in on-premises or hybrid environments
+using S3-compatible solutions such as MinIO, Ceph, Backblaze B2, NetApp Storage‐
+GRID, and Dell ECS. This enhancement makes Polaris significantly more versatile
+by enabling deployment in private clouds or air-gapped environments without sacri‐
+ficing Iceberg compatibility or open architecture.
+Many organizations require the flexibility to manage data across diverse environ‐
+ments that don’t involve AWS infrastructure. Polaris’s initial tight coupling with
+AWS-specific services and assumptions, particularly around Identity and Access
+Management (IAM) and Security Token Service (STS), posed limitations for these
+use cases. By extending its storage layer to support generic S3-compatible endpoints,
+Polaris breaks those constraints and opens the door to broader adoption.
+This capability is crucial for:
+• On-prem deployments that rely on MinIO, Ceph, or other S3-compatible
+•
+appliances
+•
+• Regulated industries where data residency or sovereignty prohibits public cloud
+usage
+216 | Chapter 11: Looking to the Future of Apache Polaris
+• Multi-cloud strategies where different regions or teams may operate under differ‐
+•
+ent infrastructure stacks
+Implementation overview
+Polaris will introduce a new storage type to access on-prem S3 setups like MinIO and
+S3 appliances. Users can configure catalogs to use this storage type with a custom set
+of parameters.
+Polaris respects the same dynamic credential scoping and vending behavior as AWS
+integration but introduces a flag (skipCredentialSubscopingIndirection) for envi‐
+ronments that do not support STS or IAM. This ensures minimal disruption and
+maximum interoperability with simpler authentication models.
+Deployment simplicity
+Catalogs can be created using standard REST APIs, with the S3_COMPATIBLE type
+and associated fields configured during provisioning. This makes it easy for users to
+register internal catalogs that point to MinIO, Ceph, or other supported backends,
+while leveraging Polaris’s cataloging and governance capabilities on top.
+{
+"name": "my-s3compatible-catalog",
+"type": "INTERNAL",
+"storageConfigInfo": {
+"storageType": "S3_COMPATIBLE",
+"region": "eu-central-1",
+"s3.endpoint": "https://localhost:9000",
+“s3.stsEndpoint”: "https://localhost:9000",
+"s3.pathStyleAccess": true
+}
+}
+This enhancement will be tested and validated with multiple S3-compatible systems,
+confirming its effectiveness across varied enterprise setups.
+This feature enables:
+• Full Polaris functionality on self-managed object stores
+•
+•
+• Credential vending and policy enforcement for private clouds
+• Deployment in disconnected or security-sensitive environments
+•
+• Support for open lakehouse architectures across cloud and on-prem
+•
+Although the initial PR proposing this feature encountered prolonged review cycles
+and was eventually closed, the design has garnered broad community support. Future
+iterations may incorporate:
+The Apache Polaris Roadmap | 217
+• Expanded test coverage and Helm integrations
+•
+• Enhanced secrets management for catalog-level credentials
+•
+• Streamlined fallback behavior when IAM features are not available
+•
+By supporting S3-compatible backends, Polaris reaffirms its role as an open and
+adaptable metadata platform that can thrive in any infrastructure setting. This mile‐
+stone greatly enhances its appeal to enterprises seeking to modernize their data
+architectures without being bound to a specific cloud provider.
+Catalog UI
+To ensure that Apache Polaris can be adopted by a broader range of users—including
+data analysts, governance teams, and platform administrators—the project roadmap
+includes a dedicated web-based Catalog UI. While Polaris already exposes compre‐
+hensive REST APIs and Swagger documentation for developers, a graphical interface
+will dramatically enhance usability and accessibility across the organization.
+The Catalog UI is envisioned as a central control plane for metadata operations and
+governance within Polaris. It provides an intuitive, browser-accessible interface that
+lowers the barrier to entry for users who may not be comfortable interacting directly
+with APIs or command-line interface (CLI) tools.
+Goals for the UI include:
+• Visual browsing of catalog entities such as namespaces, tables, and views
+•
+• Creation and deletion of metadata entities through interactive forms
+•
+• Inspection of catalog configurations, including both internal and federated cata‐
+•
+logs
+•
+• Visibility into policy management, such as applied maintenance or governance
+policies
+This feature aligns closely with Polaris’s ambitions to support not just platform
+engineers but also data stewards, compliance officers, and operational SRE teams.
+The Catalog UI is more than a convenience; it’s a key enabler of governance at scale.
+By giving non-engineering teams a self-service interface to Polaris, organizations
+can distribute responsibility for metadata hygiene, compliance tracking, and policy
+auditing across multiple roles.
+Furthermore, in environments with multiple catalogs and namespaces—especially in
+federated or multi-tenant deployments—the UI provides critical transparency and
+discoverability for complex metadata topologies.
+218 | Chapter 11: Looking to the Future of Apache Polaris
+Feature scope
+The first iteration of the Catalog UI is expected to support:
+Entity browsing
+Navigate through catalog, namespace, and table hierarchies.
+Entity management
+Create or delete catalogs, namespaces, and tables directly from the interface.
+Policy visibility
+Display TMS and access control policies applied at various levels.
+Catalog federation support
+View and manage external catalogs federated into Polaris.
+Over time, the UI may evolve to include:
+• RBAC role and permission visualization and management
+•
+• Integration with OpenLineage or other metadata visualization tools
+•
+• Search, filtering, and tagging support for large-scale catalog navigation
+•
+Looking ahead
+While the initial work on this feature is still in its early stages, it has strong back‐
+ing from the Polaris community. As Apache Polaris matures into a full-fledged,
+enterprise-grade metadata platform, a rich, interactive UI will be essential for driv‐
+ing adoption and accelerating productivity among both technical and non-technical
+users.
+By unifying metadata management, governance visibility, and policy introspection
+under one interface, the Catalog UI brings Polaris closer to becoming the single pane
+of glass for the modern lakehouse.
+Federated Catalogs
+As enterprise data platforms increasingly span multiple regions, storage systems, and
+organizational domains, federation of metadata catalogs becomes critical. Apache
+Polaris is introducing Catalog Federation to unify disparate Iceberg REST catalogs
+under a single control plane while retaining robust governance, RBAC, and metadata
+management. This capability not only simplifies multi-catalog integration but also
+positions Polaris as a foundational layer for cross-catalog governance and migration
+strategies.
+The Apache Polaris Roadmap | 219
+The Catalog Federation roadmap in Polaris aims to:
+•
+• Enable read-through and passthrough access to remote Iceberg REST Catalogs
+• Introduce just-in-time (JIT) facade creation of entities such as namespaces,
+•
+tables, and views
+•
+• Support Polaris-native RBAC and policy evaluation even when metadata resides
+in external systems
+• Provide a smooth pathway for catalog consolidation and migration through
+•
+intermediate federated states
+Federation modes and facade types
+Polaris classifies federated entities into three conceptual types:
+Implicit entities
+No local metadata is available; entities are resolved on the fly.
+Static facades
+A read-only snapshot of the remote entity is retained in Polaris.
+Passthrough facades
+Fully dynamic proxies for remote entities, supporting both reads and writes, and
+JIT-creation when accessed.
+By default, Polaris federation will begin with catalog-level facades, with deeper levels
+(namespaces, tables, and views) introduced via JIT creation and optional JIT refresh.
+Milestone 1 scope
+The first implementation milestone includes:
+• Static catalog facades pointing to remote Iceberg REST Catalogs.
+•
+• No Polaris persistence for subordinate entities (namespaces, tables).
+•
+• RBAC is controlled at the catalog level.
+•
+• Remote reads and writes are passed through the Polaris server transparently.
+•
+This design ensures Polaris remains the gatekeeper for access control, while deferring
+execution to the source-of-truth catalog.
+Milestone 2: JIT-creation of entity facades
+A significant enhancement following the MVP is the envisioned support for the JIT
+creation of namespaces, tables, and views during access. This unlocks:
+• RBAC granularity beyond the catalog level
+•
+220 | Chapter 11: Looking to the Future of Apache Polaris
+• Entity-specific policy attachment within Polaris
+•
+• Seamless integration of federated metadata into Polaris UIs and governance
+•
+tooling
+Entities can be promoted from JIT-in-memory to persisted objects as needed (e.g.,
+during a grant operation or as part of a migration).
+Use cases
+Use cases for catalog federation include:
+Hybrid cloud governance
+Manage on-prem and cloud-based catalogs centrally with Polaris.
+Enterprise catalog migration
+Use federated access as a transitional step before fully onboarding legacy catalogs
+into Polaris.
+Looking ahead
+The federation framework is designed for extensibility:
+Non-Iceberg catalogs
+While the MVP targets Iceberg REST, future support may include other possible
+connection targets.
+Policy federation
+Integration with external policy engines (e.g., Apache Ranger) is a natural evolu‐
+tion of the current access-control design.
+Catalog Federation summary
+Catalog Federation in Polaris brings together data unification, governance, and scala‐
+bility. With support for dynamic facades, JIT metadata creation, and secure credential
+management, Polaris is evolving into a federated governance layer that can sit atop
+any number of Iceberg-compatible catalogs. This not only simplifies architecture
+for organizations operating in complex environments but also opens the door to
+centralized policy enforcement and catalog observability at scale.
+Federated Role Support
+Large-scale organizations often manage tens of thousands of users and rely on cen‐
+tralized services, such as Okta, LDAP, Entra ID, or Google, to control authentication
+and role-based access. With dynamic group membership and immediate privilege
+revocation needs, Federated User and Role Support is an essential capability for
+Polaris to provide scalable, secure, and enterprise-ready governance.
+The Apache Polaris Roadmap | 221
+The goals for federated role support are:
+Centralized identity management
+Enterprises require a single point of control for users and roles, ensuring that
+changes in IdP group membership are reflected instantly across all dependent
+systems.
+Dynamic provisioning
+Automatically populate role entities in Polaris as users authenticate, aligning
+with System for Cross-Domain Identity Management (SCIM) and Single Sign-on
+(SSO) best practices.
+The key design principles for the project are:
+Pluggable identity providers
+Polaris supports multiple identity providers (e.g., Okta, Google, LDAP [via
+OAuth/OIDC]), using a flexible authenticator framework and token broker
+model.
+Federated entities
+Roles provisioned via an IdP will be marked as federated=true, preventing
+unauthorized local modifications or credential assignments.
+Architecture overview
+Federated support in Polaris will follow these core mechanics:
+Authentication
+identity realm.
+Tokens presented to Polaris will be validated using pluggable token brokers per
+Provisioning
+Polaris dynamically creates PrincipalRole entities based on claims.
+No entity is persisted unless it is needed for grants (PrincipalRoles must be
+persisted for CatalogRole assignments).
+Grant restrictions
+Grants cannot be assigned to or from federated entities via the Polaris API.
+Federated PrincipalRoles are exclusively controlled by the external IdP.
+Token scopes dictate access—roles not present in the token are not effective, even
+if they were previously granted.
+Security enforcement
+users.
+APIs such as /oauth/tokens and /rotateSecrets are disabled for federated
+222 | Chapter 11: Looking to the Future of Apache Polaris
+Federated Principals cannot assume or be granted non-federated roles, and vice
+versa.
+SCIM and future synchronization
+While the MVP centers around just-in-time (JIT) provisioning, Polaris is designed to
+support SCIM for push-based synchronization of users and groups. This enables:
+• Pre-population of users and roles
+•
+• Easier visibility into role membership
+•
+• Support for compliance audits and entitlement tracking
+•
+Though SCIM is not part of the initial release, persistence of federated principals lays
+the foundation for future support.
+Practical implications
+Here are some of the results of this architecture when it comes to governance.
+Token-driven access
+A token issued by the IdP serves as the sole source of truth for current roles, with
+no local grant overrides.
+Immutable role membership
+Ensures firm security boundaries, where only the IdP governs access.
+Safe delegation
+Prevents scenarios where leaked credentials or misconfigured grants could give
+unintended access to sensitive data.
+Federated User and Role Support in Polaris establishes a secure, scalable identity
+integration framework that aligns with enterprise SSO and governance needs. By
+enforcing strict boundaries between Polaris-managed and IdP-managed identities,
+the platform ensures both real-time access control and strong compliance guarantees
+while laying the groundwork for future features like SCIM synchronization and
+fine-grained multi-IdP federation.
+The Apache Polaris Roadmap | 223
+Polaris Event Listeners
+As Polaris matures into a platform supporting varied use cases across large-scale
+deployments, extensibility becomes a key requirement. While configuration flags
+and dependency injection can handle a subset of customizations, these approaches
+quickly become unmanageable for dynamic, runtime-specific needs or for fine-
+grained internal process visibility. To address this, Polaris is planning to introduce
+a first-class event listener framework to support safe, pluggable hooks at key lifecycle
+stages.
+The goal of Polaris Event Listeners is to expose well-defined “event hooks” at critical
+execution points within the platform, allowing users to:
+• Observe or react to internal state transitions
+•
+• Augment behavior in a modular, non-intrusive way
+•
+• Avoid forking Polaris or performing brittle dependency injections
+•
+These event listeners will support observability, analytics, auditing, and custom policy
+enforcement while maintaining core stability.
+Event hooks will only be introduced where:
+•
+• The behavior cannot be achieved with existing configuration or dependency
+injection.
+•
+• There’s a tangible use case that benefits users or downstream systems.
+• The event is distinct enough not to be addressed by existing listeners.
+•
+This approach encourages deliberate and thoughtful extensibility, rather than blanket
+instrumentation.
+Initial event set
+The initial implementation proposes the event hooks shown in Table 11-1.
+Table 11-1. Polaris event listeners
+Event Name Trigger Use Case
+OnBeforeRequestRate
+Limited
+Prior to applying request rate limiting Observability, dynamic throttling adjustments
+OnBeforeCommitTable Before committing table metadata Anomaly detection, pre-commit validation
+OnAfterCommitTable After successful table commit Audit logging, metrics capture
+OnBeforeCommitView Before committing view metadata Anomaly detection, pre-commit validation
+OnAfterCommitView After successful view commit Audit logging, metrics capture
+224 | Chapter 11: Looking to the Future of Apache Polaris
+Event Name Trigger Use Case
+OnBeforeRefreshTable Before internal table metadata refresh Monitor refresh patterns or cache invalidation
+logic
+OnAfterRefreshTable After table metadata refresh Metadata validation, metrics capture
+OnBeforeRefreshView Before view metadata refresh Monitor refresh patterns or cache invalidation
+logic
+OnAfterRefreshView After view metadata refresh Metadata validation, metrics capture
+OnBeforeAttemptTask Before Polaris launches an asynchronous
+task
+Workflow tracking, task filtering
+OnAfterAttemptTask After an async task finishes Audit trails, error analysis
+These form the foundation for a future in which all major Polaris lifecycle steps are
+optionally observable or interceptable.
+Implementation options
+Two implementation strategies are under consideration:
+Jakarta events
+These use the Jakarta EE standard event system. They are simple and familiar
+but lack support for modifying event payloads (e.g., altering metadata before
+commit).
+Custom listener interface
+This provides richer functionality, including bi-directional hooks that allow the
+event handler to modify the object being processed (e.g., intercept and change
+table metadata before commit).
+While Jakarta offers immediate integration benefits, the custom interface provides
+greater flexibility and power, significant in the Polaris context where metadata muta‐
+tion and validation are essential.
+Looking ahead
+As Polaris evolves, the event system will likely expand to include:
+• Security-sensitive actions (e.g., before/after authorization checks)
+•
+• Integration events for external systems (e.g., lineage tracking, observability
+•
+platforms)
+• Extension points for data governance workflows
+•
+A registry of active listeners, error-handling strategies, and performance isolation
+mechanisms will also be part of future discussions.
+The Apache Polaris Roadmap | 225
+The addition of Event Listeners represents a strategic enhancement to Polaris’s
+extensibility. It aligns Polaris with other mature platforms that offer runtime hooks
+for advanced users while preserving the OSS project’s maintainability and stability.
+This feature will empower platform engineers, observability teams, and governance
+administrators to customize Polaris with confidence and precision.
+Unstructured Data in Polaris
+As the data landscape evolves with the surge of AI/ML and multimedia applications,
+managing unstructured data (such as logs, images, and videos) has become a core
+need for modern data platforms. Polaris is extending its architecture to accommodate
+this by introducing first-class support for unstructured data within the same gover‐
+nance and access control fabric as structured Iceberg tables.
+Traditional catalogs, such as Polaris, have excelled at managing structured tabular
+data via Iceberg but have had limited capabilities in organizing and governing
+unstructured data. Users typically interact with object stores directly for files, limiting
+governance, access control, and query capabilities. The proposed Volume abstraction
+in Polaris addresses this by introducing a new table-like entity designed explicitly for
+unstructured file metadata.
+A Volume in Polaris is a logical container within a namespace that represents a group
+of unstructured data files. It enables:
+•
+• Logical grouping of related unstructured files
+• Access control enforcement and credential vending using Polaris’ privilege model
+•
+• Queryable metadata for files (e.g., size, timestamps, checksums)
+•
+• Asynchronous metadata sync via a backing directory table
+•
+Volumes allow file management (add/update/delete) using standard object store
+operations, such as aws s3 cp or gsutil, without the need for Polaris-specific upload
+APIs.
+Architectural overview
+Each volume can optionally be backed by a directory table, implemented as a read-
+only Iceberg table maintained by Polaris. This table provides query capabilities across
+volume file metadata, such as:
+CREATE TABLE dir_table (
+relative_path STRING,
+size BIGINT,
+last_modified TIMESTAMP,
+md5 STRING,
+file_url STRING
+)
+226 | Chapter 11: Looking to the Future of Apache Polaris
+Directory tables are automatically refreshed in the background, either:
+• By delegation to a remote engine
+•
+• A Polaris-integrated TMS job (similar to compaction or snapshot expiration
+•
+workflows)
+These directory tables reside in a reserved path under the catalog’s location and
+enable users to run SQL analytics or scans over file metadata.
+Volume properties and behavior
+Here are some details regarding the possible properties and behavior and properties
+that exist in this proposed feature:
+•
+• Belongs to a Polaris namespace
+• Inherits the catalog’s storage type (S3, GCS, Azure Blob, or local filesystem)
+•
+• Can include optional metadata like file format
+•
+• Supports metadata refresh intervals
+•
+Users do not need to register files manually; Polaris automatically detects and reflects
+changes during its scheduled refresh cycles.
+API design
+APIs:
+To support this new functionality, Polaris may introduce a dedicated set of REST
+Create Volume
+POST /v1/{prefix}/namespaces/{namespace}/volume/
+Drop Volume (with optional purge)
+DELETE /v1/{prefix}/namespaces/{namespace}/volume/{volume}
+List/Filter Files in a Volume
+GET/POST /v1/{prefix}/namespaces/{namespace}/volume/{volume}
+These APIs enable seamless creation and management of volumes while providing
+visibility into the files they contain.
+Limitations and looking ahead
+Here are some of the limitations of this early proposed version of this feature:
+•
+• This initial feature does not provide transactional guarantees—no versioning,
+branching, or rollback of files.
+The Apache Polaris Roadmap | 227
+• Sharding or partitioning within a volume is not supported. Files are managed as
+•
+flat lists.
+•
+• Cross-catalog syncing of volumes is not a design goal, unlike Iceberg table
+federation.
+• Open questions include whether to unify directory tables with standard Iceberg
+•
+table listings and how to separate or denote them in the UI visually.
+With the introduction of Volumes and directory tables, Polaris is extending its
+reach into unstructured data management, bridging the gap between traditional data
+lakes and modern, multimodal AI/ML data ecosystems. This architecture provides
+a scalable, secure, and queryable interface over files, natively integrated into Polaris’
+governance model, positioning Polaris as a complete data catalog solution for all data
+modalities.
+Conclusion
+The future of Apache Polaris is incredibly promising. As organizations increasingly
+adopt open, interoperable lakehouse architectures, Polaris is emerging as a corner‐
+stone for secure, scalable, and multi-engine data cataloging. With the rise of managed
+Polaris services, such as Dremio Enterprise Catalog and Snowflake’s Open Catalog,
+enterprises no longer need to choose between flexibility and operational simplicity.
+The expanding ecosystem of tools supporting the Iceberg REST Catalog specification
+ensures that Polaris can serve as a neutral foundation for a wide variety of engines,
+including Spark, Flink, Dremio, Trino, DuckDB, and beyond.
+The Polaris roadmap reflects a forward-thinking and community-driven vision.
+Innovations such as generic table support, federated catalogs, policy-based gover‐
+nance, metadata-driven table maintenance, and unstructured data management all
+point toward a robust, extensible platform ready to meet the evolving demands of the
+data lakehouse landscape.
+We hope this book has helped deepen your understanding of Polaris and the broader
+lakehouse ecosystem. Together, we explored:
+• The foundational concepts behind data lakehouses
+•
+• What makes Apache Iceberg a modern table format
+•
+• The role and architecture of a lakehouse catalog
+•
+• The purpose and design of the Iceberg REST Catalog specification
+•
+•
+• How Apache Polaris brings modern governance and interoperability to Iceberg
+• Polaris’s built-in access control and fine-grained privilege model
+•
+• The ability to onboard existing data via external catalogs
+•
+228 | Chapter 11: Looking to the Future of Apache Polaris
+• How to work locally with Polaris and Spark
+•
+•
+• How to integrate Polaris OSS with Snowflake Open Catalog
+• How Dremio’s integration with Polaris provides unified experience via the Enter‐
+•
+prise Catalog
+•
+• A look at the future roadmap of Polaris, where the project is headed, and how it
+is positioned to shape the future of open data architectures
+Thank you for joining us on this journey. Whether you’re a platform engineer, data
+architect, or open data enthusiast, we hope Polaris empowers you to build a more
+open, interoperable, and governed data platform.

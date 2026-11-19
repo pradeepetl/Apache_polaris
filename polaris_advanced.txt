@@ -1,0 +1,752 @@
+Advanced Polaris Configuration and
+CLI Management
+As you’ve seen in earlier chapters, Apache Polaris offers a powerful foundation for
+managing Iceberg table metadata in distributed, multi-tenant data lakehouse environ‐
+ments. But as with any production-grade system, truly unlocking its potential—and
+running it reliably at scale— requires a deeper understanding of its advanced features
+and operational tools.
+This chapter goes beyond day-to-day usage and explores how to manage Polaris
+effectively in real-world deployments. We’ll start by introducing the Polaris
+command-line interface (CLI), a flexible tool for scripting and automation. From
+there, we’ll cover critical administrative concepts like realms, observability, logging,
+and production configuration. Whether you’re spinning up new environments,
+debugging permission issues, or integrating with enterprise infrastructure, this chap‐
+ter will equip you with the knowledge and tools to operate Polaris with confidence.
+We’ll also take a close look at how Polaris handles metadata persistence via meta‐
+stores, the various options for metrics and tracing, and how to configure Polaris in
+containerized or cloud-native environments. By the end, you’ll have a complete view
+of what it takes to run Polaris securely and efficiently in production.
+Using the Polaris CLI
+While much of Polaris’s functionality is exposed via its REST API, the Polaris
+command-line interface (CLI) offers a more approachable and scriptable way to
+interact with the system, especially for administrators and data engineers managing
+metadata workflows, debugging issues, or automating catalog operations. The CLI
+181
+wraps many common API calls into concise, human-friendly commands that support
+managing catalogs, principals, roles, privileges, and more.
+In this section, we’ll walk through the core structure of the Polaris CLI, how authenti‐
+cation works, and how to use it effectively in both local and remote environments.
+Whether you’re quickly creating a catalog, rotating credentials, or granting privileges
+across logical boundaries, the CLI provides a flexible and efficient way to interact
+with Polaris, without writing raw HTTP requests or custom scripts. You’ll also
+see how commands can be scoped to specific realms, which Polaris uses to isolate
+tenants, teams, or environments within a single deployment.
+CLI Structure, Authentication, and Profiles
+The Polaris CLI is designed for flexibility and ease of use, mirroring the structure
+of the REST API while offering a more compact and user-friendly interface. Every
+command begins with the polaris keyword, followed by one or more commands and
+subcommands, with optional flags and arguments.
+Here’s a quick look at the basic pattern:
+polaris [global-options] <command> <subcommand> [action] [options and arguments]
+For example:
+polaris principals list
+polaris catalogs create --storage-type s3 --default-base-location
+s3://my-bucket my_catalog
+Authentication options
+The CLI supports multiple methods for authentication. At a minimum, you’ll need to
+authenticate using either:
+• A client ID and secret:
+•
+polaris --client-id <your-client-id> --client-secret <your-client-secret> ...
+• Or a bearer access token:
+•
+polaris --access-token <your-access-token> ...
+You cannot use both --client-id/--client-secret and --
+access-token in the same command.
+182 | Chapter 10: Advanced Polaris Configuration and CLI Management
+If you omit credentials on the command line, the CLI will fall back to environment
+variables (to avoid the command being part of your shell command history, start the
+command with a space):
+export CLIENT_ID=<your-client-id>
+export CLIENT_SECRET=<your-client-secret>
+Profiles for convenience
+To simplify repeated use, Polaris supports CLI profiles that store authentication and
+connection settings. This is especially useful when working with multiple environ‐
+ments or switching between realms.
+To create a profile, use:
+polaris profiles create dev
+You can then use the --profile flag to invoke it:
+polaris --profile dev catalogs list
+Alternatively, set it as an environment default:
+export CLIENT_PROFILE=dev
+Profiles store information like the host, port, access token, or client credentials, so
+you don’t have to re-enter them every time. This is especially useful when automating
+tasks or using the CLI in scripts or CI pipelines.
+Connecting to Polaris
+By default, the CLI connects to localhost:8181. If your Polaris server is running on
+a different host or port, you can set it manually using the following:
+--host my.polaris.server --port 8181
+Or you can use the --base-url flag instead to supply a full URL path:
+--base-url https://my-polaris.example.com/api/catalog/v1
+You should only provide one of --host/--port or --base-url per command.
+Managing Entities with the CLI
+At its core, Polaris is a metadata platform built around a handful of key entities:
+catalogs, principals, roles, namespaces, and privileges. The CLI exposes intuitive
+commands to manage each of these, making it easy to create and inspect metadata
+structures or automate governance tasks. This section walks through how to work
+with each of these entity types using real examples.
+Using the Polaris CLI | 183
+Catalogs
+Catalogs are the foundation of Polaris—they define where Iceberg tables live and how
+they’re organized. With the CLI, you can create, list, update, and delete catalogs.
+To create a simple file-backed catalog:
+polaris catalogs create \
+--storage-type file \
+--default-base-location file:///tmp/polaris \
+my_catalog
+For cloud storage, specify the relevant credentials:
+polaris catalogs create \
+--storage-type s3 \
+--default-base-location s3://my-bucket/polaris-data \
+--role-arn arn:aws:iam::1234567890:role/my-polaris-role \
+my_cloud_catalog
+To list all catalogs:
+polaris catalogs list
+And to update a catalog’s properties:
+polaris catalogs update my_catalog --property environment=dev
+Principals
+Principals represent users or service accounts. You’ll typically create one for each data
+user or application that needs access to Polaris.
+To create a principal:
+polaris principals create data_engineer_1
+You can also attach metadata to principals using properties:
+polaris principals create --property team=analytics data_scientist_1
+To rotate credentials:
+polaris principals rotate-credentials data_engineer_1
+List or inspect principals:
+polaris principals list
+polaris principals get data_engineer_1
+Roles: principal and catalog
+Roles in Polaris come in two flavors: principal roles, which define high-level access
+policies across catalogs, and catalog roles, which govern access within a specific
+catalog.
+184 | Chapter 10: Advanced Polaris Configuration and CLI Management
+To create a principal role:
+polaris principal-roles create analyst_role
+Then assign it to a user:
+polaris principal-roles grant --principal data_scientist_1 analyst_role
+To create a catalog role within a catalog:
+polaris catalog-roles create --catalog my_catalog limited_reader
+Then grant it to a principal role:
+polaris catalog-roles grant \
+--catalog my_catalog \
+--principal-role analyst_role \
+limited_reader
+These layers let you decouple identity (who the user is) from access scope (what they
+can see or modify), making access policies easier to manage at scale.
+Namespaces
+Namespaces act like folders within a catalog. Use them to hierarchically organize
+tables.
+To create a namespace:
+polaris namespaces create --catalog my_catalog analytics.q1
+To list them:
+polaris namespaces list --catalog my_catalog
+Privileges
+Once roles are assigned, you can grant or revoke fine-grained privileges—on catalogs,
+namespaces, tables, or views.
+Example: granting catalog-level content management:
+polaris privileges catalog grant \
+--catalog my_catalog \
+--catalog-role limited_reader \
+CATALOG_MANAGE_CONTENT
+Or granting read access to a specific table:
+polaris privileges table grant \
+--catalog my_catalog \
+--catalog-role limited_reader \
+--namespace analytics.q1 \
+--table sales_data \
+TABLE_READ_DATA
+Using the Polaris CLI | 185
+Use the revoke subcommand with --cascade to remove dependent permissions:
+polaris privileges table revoke \
+--catalog my_catalog \
+--catalog-role limited_reader \
+--namespace analytics.q1 \
+--table sales_data \
+--cascade \
+TABLE_READ_DATA
+Each of these commands maps closely to the REST API, but with syntax that’s
+friendlier for human operators and automation scripts. In the next section, we’ll
+explore how Polaris uses realms to provide multi-tenant isolation and how to manage
+that context from the CLI and configuration.
+Understanding Realms
+Polaris supports multi-tenant isolation out of the box through a construct called a
+realm. A realm is a logical partition of Polaris’s metadata layer that allows different
+teams, business units, or environments (e.g., dev, staging, prod) to operate in com‐
+plete isolation, even if they share the same Polaris server instance. Understanding
+how realms work is essential for anyone deploying Polaris at scale, especially in
+organizations with strict data boundaries or compliance requirements.
+What is a realm?
+A realm in Polaris is a top-level boundary that encapsulates its catalogs, roles, princi‐
+pals, and metadata. When a user authenticates into a realm, typically by including the
+realm name in a configuration file or API request header, all subsequent actions (such
+as creating catalogs, assigning roles, or querying metadata) are scoped strictly within
+that realm. This ensures complete separation of privileges and data across tenants or
+environments. Administrators define realms during deployment or bootstrap; they
+are not created dynamically through the API. Identifiers like my_team_realm must be
+explicitly configured in Polaris’s startup settings (e.g., in application.properties)
+to be recognized and used.
+Think of realms as lightweight, secure sandboxes within Polaris:
+• Multiple business units can share infrastructure but manage their own policies.
+•
+• Service providers can host Polaris for customers without cross-contamination.
+•
+How realm context works
+In Polaris, realm context refers to how the system determines which realm a request
+belongs to. This context is critical for enforcing isolation and ensuring that metadata
+operations, such as catalog creation, role assignments, or table queries, are executed
+186 | Chapter 10: Advanced Polaris Configuration and CLI Management
+within the correct security and governance boundary. Every request to Polaris must
+include enough information for the server to resolve the appropriate realm.
+Determining realm using the Polaris-Realm HTTP header (default)
+By default, Polaris resolves realm context using a special HTTP header. Clients
+include the name of the target realm in the request using the Polaris-Realm header.
+This approach is common when interacting with Polaris through its REST API.
+For example:
+Polaris-Realm: my_team_realm
+This tells Polaris that the request, whether it’s to list catalogs or grant privileges,
+should be scoped to the my_team_realm realm. If this header is omitted and no
+default realm is configured, the request will fail with a realm resolution error.
+Realm-aware authentication and bootstrapping
+Authentication in Polaris is realm-scoped. Each realm has its own root principal,
+whose credentials are required to bootstrap and manage the realm. When setting up a
+realm in a production environment, you’ll usually:
+• Configure the realm in your application.properties or via environmental
+•
+variables.
+• Bootstrap the realm using the CLI or java •
+• Issue tokens specific to that realm’s root principal.
+•
+-jar command.
+Example environment variables to set root credentials (the initial user you can use to
+create initial principals and catalogs):
+export POLARIS_BOOTSTRAP_MY_REALM_ROOT_CLIENT_ID=my-client-id
+export POLARIS_BOOTSTRAP_MY_REALM_ROOT_CLIENT_SECRET=my-secret
+Then bootstrap the realm:
+java -jar runtime/admin/build/quarkus-app/quarkus-run.jar bootstrap --help
+To specify the credentials to be created in the command would look like this:
+java -jar runtime/admin/build/quarkus-app/quarkus-run.jar bootstrap
+-r my_realm -c my_realm,client-id,my-secret
+The -r flag specifies which realm to bootstrap and -c specifies the credentials.
+Once bootstrapped, the realm is fully operational and ready for catalog provisioning
+and role setup.
+Using the Polaris CLI | 187
+Realm isolation in practice
+Behind the scenes, Polaris uses realm context to enforce a higher level of isolation
+that sits above individual catalogs. While Chapter 3 discussed how catalogs are iso‐
+lated from one another, meaning metadata, roles, and permissions within one catalog
+do not affect another, realms introduce a broader boundary. A realm isolates entire
+groups of catalogs, along with their associated principals, roles, grants, and metadata,
+into a logically separate domain. This allows different teams, business units, or ten‐
+ants to operate independently within the same Polaris deployment, without any risk
+of cross-access or configuration leakage. Realm isolation is enforced through scoped
+authentication, separate database connections, and realm-specific context resolution
+at runtime, providing a strong multi-tenancy model that complements catalog-level
+boundaries.
+Polaris uses the realm context to isolate metadata at multiple levels:
+Metastore
+Separate storage backends or schemas per realm.
+Security
+Distinct principals, roles, and policies.
+Logging and tracing
+Realm identifiers are attached to log entries and telemetry spans, making it easier
+to debug and audit activity per realm.
+This isolation makes realms ideal for SaaS-style multi-tenancy, hybrid cloud envi‐
+ronments, and any scenario where firm boundaries between users or systems are
+required, compared to the isolation of governance and logical organization of cata‐
+logs within a realm (if you are a company providing catalogs as a SaaS, each customer
+would have a realm, while that customer maintains many catalogs within that Realm).
+Next, we’ll explore how to observe and troubleshoot Polaris using built-in metrics,
+traces, and logs—critical tools for production deployments and root-cause analysis.
+Observability: Metrics, Tracing, and Logging
+Running Polaris in production means more than just standing it up—it requires
+visibility into what’s happening under the hood. Whether you’re tracking API perfor‐
+mance, debugging a failed request, or auditing access across realms, observability is
+key to operating Polaris with confidence and control.
+Polaris provides a robust observability layer out of the box, including:
+Metrics
+Exposed via Micrometer and ready to be scraped by Prometheus
+188 | Chapter 10: Advanced Polaris Configuration and CLI Management
+Distributed traces
+Published using OpenTelemetry for deep request-level visibility
+Structured logging
+Powered by Quarkus and enriched with context like request IDs, trace IDs, and
+realm identifiers
+Tracing
+To help make troubleshooting much easier
+In this section, you’ll learn how to configure and consume Polaris’s observability
+signals in both development and production environments. We’ll walk through how
+to expose and customize metrics, enable traces for distributed debugging, and tailor
+logging behavior to fit your operational workflows. If you’re responsible for running
+Polaris at scale—or need to troubleshoot complex behaviors—this is where you’ll find
+the tools to do it effectively.
+Metrics with Micrometer and Prometheus
+Polaris exposes a comprehensive set of runtime metrics using Micrometer, a vendor-
+neutral instrumentation library that integrates seamlessly with monitoring tools like
+Prometheus, Datadog, and others. These metrics provide in-depth visibility into sys‐
+tem health and behavior, including request volumes, response latencies, error rates,
+and resource utilization. For example, you can track API request counts by HTTP
+status code, monitor memory consumption and garbage collection performance, or
+set alerts when request latencies exceed defined thresholds. Polaris also supports
+custom metric tags, allowing you to filter and aggregate metrics by realm, region,
+catalog, or deployment environment, making it easier to pinpoint issues and analyze
+trends in complex, multi-tenant deployments.
+Accessing metrics
+Polaris publishes metrics through its management interface, typically served on port
+8282. You can access them via a browser or use a Prometheus-compatible scraper:
+http://<your-polaris-host>:8282/q/metrics
+If you’re running Polaris locally, that might look like: http://localhost:8282/q/metrics
+This endpoint returns a plaintext stream of metrics in Prometheus format, including
+system stats (CPU, memory, HTTP response codes) as well as Polaris-specific coun‐
+ters and gauges.
+Scraping with Prometheus
+To integrate with Prometheus, just add Polaris as a scrape target in your Prometheus
+configuration:
+Observability: Metrics, Tracing, and Logging | 189
+scrape_configs:
+- job_name: 'polaris'
+metrics_path: '/q/metrics'
+static_configs:
+- targets: ['localhost:8282']
+You can now create Grafana dashboards or alerts based on Polaris’s performance and
+usage.
+Customizing metric tags
+You can enrich your Polaris metrics with custom tags to distinguish between services,
+environments, or deployments. Polaris supports tagging via configuration properties
+like:
+polaris.metrics.tags.environment=prod
+polaris.metrics.tags.service=metadata-api
+polaris.metrics.tags.region=us-west-2
+These tags are automatically appended to every metric, making it easy to break down
+metrics across environments or filter them in dashboards.
+By default, Polaris includes:
+polaris.metrics.tags.application=Polaris
+You can override it by setting:
+polaris.metrics.tags.application=my-polaris-instance
+The /q/metrics endpoint should be exposed only to trusted infra‐
+structure, such as internal monitoring systems, especially in pro‐
+duction environments. Use a firewall, reverse proxy, or Kubernetes
+ingress rules to control access.
+Tracing with OpenTelemetry
+While metrics offer a broad overview of Polaris’s health and performance, tracing
+provides a more detailed, request-level view of what’s happening inside the system.
+With distributed tracing via OpenTelemetry, Polaris can emit spans that help you fol‐
+low individual requests as they move through components, services, and realms. This
+level of visibility is beneficial when debugging high-latency requests, investigating
+intermittent timeouts, or understanding behavior across multi-realm or multi-service
+environments. Tracing also becomes essential when coordinating with external sys‐
+tems, such as Spark, Kafka, or cloud-native services, that emit their own OpenTele‐
+metry traces. By default, tracing is disabled in Polaris, so you’ll need to explicitly
+enable it and configure an OTLP (OpenTelemetry Protocol) collector to capture and
+analyze these signals.
+190 | Chapter 10: Advanced Polaris Configuration and CLI Management
+Enabling tracing
+To enable tracing, set the following property in your Polaris configuration (e.g., in
+application.properties or via environment variables):
+quarkus.otel.sdk.disabled=false
+Then, specify the collector endpoint where traces should be sent. This must be a valid
+HTTP or HTTPS URL pointing to a compatible OpenTelemetry collector:
+quarkus.otel.exporter.otlp.traces.endpoint=http://otlp-collector:4317
+The endpoint must support the OTLP gRPC protocol, and the default port is typically
+4317.
+Customizing trace metadata
+Polaris automatically attaches helpful metadata to every trace:
+service.name
+Defaults to Apache Polaris Server (incubating)
+service.version
+The current Polaris release version
+polaris.realm
+The realm ID for the request
+polaris.request.id
+If the client provides a Polaris-Request-Id header
+You can override or extend these attributes using:
+quarkus.otel.resource.attributes=service.name=polaris,deployment.environment=prod
+Alternatively, you can use the indexed syntax:
+quarkus.otel.resource.attributes[0]=service.name=polaris
+quarkus.otel.resource.attributes[1]=deployment.environment=prod
+This is useful when running multiple Polaris services (e.g., per team or region) and
+you want to break down trace data by context.
+Troubleshooting trace export
+If Polaris fails to send traces, you may see logs like:
+SEVERE [io.ope.exp.int.grp.OkHttpGrpcExporter] ... Failed to export spans.
+The request could not be executed. Full error message: Failed to connect
+to localhost:4317
+Observability: Metrics, Tracing, and Logging | 191
+This typically means:
+• The collector isn’t running
+•
+• The endpoint URL is incorrect
+•
+• The port is blocked or misconfigured
+•
+Double-check your configuration and ensure the OpenTelemetry collector is reacha‐
+ble from the Polaris container or host.
+With Polaris emitting structured, span-level traces, you can plug into any OTEL-
+compatible backend like Jaeger, Grafana Tempo, or Honeycomb to get full visibility
+into your lakehouse metadata layer.
+Logging and Debugging with Quarkus
+Logging is the foundation of any good observability stack—and Polaris offers a flexi‐
+ble, extensible logging system built on top of Quarkus. Whether you’re troubleshoot‐
+ing a failed request, auditing user behavior across realms, or tuning performance,
+Polaris’s logs give you detailed insight into what the system is doing and why.
+By default, Polaris logs to both the console and a rotating file in the ./logs directory.
+You can customize everything from log format and level to contextual metadata like
+request IDs and realms.
+Basic logging behavior
+Polaris outputs logs in a human-readable format and rotates log files daily. Each file
+is capped at 10MB with a maximum of 14 backups retained. This default setup works
+well for development, but production environments will typically want to forward
+logs to a centralized logging solution (e.g., Fluentd, Logstash, or cloud-native log
+services).
+Setting log levels
+You can globally adjust the log verbosity, which controls how much detail is included
+in the logs, using:
+quarkus.log.level=INFO
+To fine-tune specific components, define per-package log levels:
+quarkus.log.category."org.apache.polaris".level=DEBUG
+This is especially helpful when debugging Polaris internals or observing authentica‐
+tion flows.
+192 | Chapter 10: Advanced Polaris Configuration and CLI Management
+Debugging configuration issues
+To troubleshoot startup or configuration problems, increase verbosity for the config
+loader:
+quarkus.log.console.level=DEBUG
+quarkus.log.category."io.smallrye.config".level=DEBUG
+Increasing the verbosity for the config loader may expose sensitive
+values such as credentials or tokens. Do not enable verbosity in
+production unless absolutely necessary.
+Enabling JSON logs
+If you’re ingesting Polaris logs into a structured logging system (e.g., Elasticsearch),
+enable JSON-formatted output:
+quarkus.log.console.json=true
+quarkus.log.file.json=true
+JSON logs make it easier to parse, search, and correlate logs across services and time
+windows.
+Using MDC for contextual logging
+Polaris automatically includes Mapped Diagnostic Context (MDC) entries in every
+log message, enriching them with request-level context:
+requestId
+From the Polaris-Request-Id header
+realmId
+The realm in which the request is operating
+traceId, parentId, and spanId
+From OpenTelemetry, if tracing is enabled
+sampled
+Whether the trace was sampled
+Log output includes these fields in the default pattern:
+%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3.}] [%X{requestId},%X{realmId}]
+[%X{traceId},%X{parentId},%X{spanId},%X{sampled}] (%t) %s%e%n
+Observability: Metrics, Tracing, and Logging | 193
+Adding custom MDC keys
+You can add your own contextual metadata to every log by setting additional MDC
+properties:
+polaris.log.mdc.environment=prod
+polaris.log.mdc.region=us-west-2
+These tags appear in every log line and are especially useful in multi-region or
+multi-realm deployments where filtering by environment or location is critical.
+Together with metrics and traces, Polaris’s logging system forms a complete observa‐
+bility stack that supports both real-time monitoring and in-depth forensic analysis.
+With flexible formats, structured context, and easy integration into your existing
+tools, logs become a first-class tool for operating your data lakehouse infrastructure.
+Configuring Polaris for Production
+Deploying Polaris in production requires more than just standing up the service—
+you’ll need to think through security, durability, multi-tenancy, and scalability from
+the ground up. While Polaris provides a streamlined developer experience out of
+the box, its default configuration is specifically designed for local experimentation
+and testing. To safely run Polaris in a real-world environment, you’ll need to replace
+in-memory components, harden authentication flows, and carefully configure persis‐
+tence and network settings.
+In this section, we’ll walk through the key areas you’ll want to review and adjust
+before moving to production. These include:
+• Enabling secure authentication and OAuth2 token brokers
+•
+• Configuring durable metadata storage using relational metastores
+•
+• Bootstrapping realms and root principals safely
+•
+• Disabling test features and tightening default privileges
+•
+• Setting concurrency and rate limits to protect against overload
+•
+By the end, you’ll have a clear roadmap for turning Polaris from a local development
+sandbox into a secure, robust, and multi-tenant production catalog service.
+Security and Authentication Configuration
+In production environments, robust authentication is essential. Polaris provides
+flexible, pluggable mechanisms for securing access to metadata APIs; however, its
+default development configuration utilizes a test authenticator that’s not intended for
+real-world use. Transitioning to a secure authentication setup is one of the first and
+most critical steps in preparing Polaris for production.
+194 | Chapter 10: Advanced Polaris Configuration and CLI Management
+Configure OAuth2 and token brokers
+Polaris supports OAuth2-based authentication flows, which allow service accounts
+or users to request access tokens tied to a specific principal and realm. You can
+configure Polaris to issue tokens via a token broker, which can use either symmetric
+keys or asymmetric RSA key pairs.
+To configure the token broker with symmetric key encryption:
+polaris.authentication.token-broker.type=symmetric-key
+polaris.authentication.token-broker.symmetric-key.file=/secrets/symmetric.key
+Or, configure the token broker using RSA keys:
+polaris.authentication.token-broker.type=rsa-key-pair
+polaris.authentication.token-broker.rsa-key-pair.public-key-file=
+/secrets/public.key
+polaris.authentication.token-broker.rsa-key-pair.private-key-file=
+/secrets/private.key
+The token-broker settings must match in both the oauth2
+and authenticator configurations. Mismatched values will cause
+authentication failures.
+Bootstrap root credentials for a realm
+When deploying Polaris with persistent metadata (e.g., using a metastore), you’ll need
+to bootstrap the system to initialize realm-level credentials and infrastructure. As part
+of the bootstrap process, you can provide a custom client_id and client_secret
+for the realm’s root principal.
+Set these via environment variables:
+export POLARIS_BOOTSTRAP_MY_REALM_ROOT_CLIENT_ID=my-client-id
+export POLARIS_BOOTSTRAP_MY_REALM_ROOT_CLIENT_SECRET=my-client-secret
+Then run:
+java -jar polaris-service-all.jar bootstrap polaris-server.yml
+For Docker-based deployments:
+bin/polaris-service bootstrap config/polaris-server.yml
+This process creates the root principal and stores hashed credentials in the metastore
+backend.
+Configuring Polaris for Production | 195
+For bootstrapping the default realm, environment variables must be prefixed exactly
+as shown:
+env POLARIS_BOOTSTRAP_DEFAULT-REALM_ROOT_CLIENT_ID=my-client-id \
+POLARIS_BOOTSTRAP_DEFAULT-REALM_ROOT_CLIENT_SECRET=my-secret \
+<bootstrap command>
+Token issuance example. Once bootstrapping is completed, you can request a token:
+curl -X POST http://localhost:8181/api/catalog/v1/oauth/tokens \
+-d "grant_type=client_credentials&client_id=my-client-id
+&client_secret=my-secret&scope=PRINCIPAL_ROLE:ALL"
+For non-default realms, include the realm HTTP header:
+-H 'realm: my_custom_realm'
+Best practices for production. Here are some best practices for when in production:
+Store secrets securely
+Never hardcode credentials or keys in source code or container images.
+Rotate credentials periodically
+Polaris supports credential rotation via CLI.
+Scope tokens tightly
+access.
+Use specific scopes (e.g., CATALOG_LIST, TABLE_READ_DATA) rather than blanket
+Durable Metadata with Metastores
+In development, Polaris defaults to an in-memory metastore for fast iteration and
+simplicity. But in production, this setup is not suitable—it’s ephemeral and non-
+durable. Using an in-memory metastore means:
+• Metadata is lost on restart
+•
+• There’s no way to persist configuration between sessions
+•
+• Multiple nodes can’t coordinate access to shared state
+•
+In production, these limitations are unacceptable. Durable metadata is essential for
+long-term stability, auditing, multi-node deployment, and compliance. For real-world
+use, Polaris must persist metadata like catalogs, roles, grants, and principals to a
+relational backend that ensures data integrity and durability.
+Polaris supports two options for metastores: Relational JDBC (recommended) and
+NoSql Databases (in development). EclipseLink is deprecated; it should not be used
+for new development.
+196 | Chapter 10: Advanced Polaris Configuration and CLI Management
+Using relational JDBC (recommended)
+The preferred backend for production is the relational JDBC implementation. This
+approach leverages Quarkus’s native support for database connections and integrates
+with PostgreSQL or H2 (for non-prod scenarios).
+First, set your persistence type to relational-jdbc:
+POLARIS_PERSISTENCE_TYPE=relational-jdbc
+Next, configure the datasource using Quarkus environment variables or properties:
+QUARKUS_DATASOURCE_DB_KIND=postgresql
+QUARKUS_DATASOURCE_USERNAME=my_user
+QUARKUS_DATASOURCE_PASSWORD=my_password
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://mydb:5432/{realm}
+The {realm} token in the JDBC URL allows Polaris to isolate metadata per realm,
+creating physical separation at the database level.
+It’s important to note that:
+• Databases must be created manually—Polaris does not auto-create them.
+•
+• Each realm connects to its own schema or database.
+•
+You can also define the persistence backend using Polaris’s application config file
+application.properties:
+polaris.persistence.type=relational-jdbc
+quarkus.datasource.db-kind=postgresql
+quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/production_realm
+quarkus.datasource.username=admin
+quarkus.datasource.password=secret
+Deprecated: EclipseLink metastore
+While still available, the EclipseLink persistence option is deprecated and should
+not be used for new deployments. It requires a persistence.xml file to configure
+connection properties, which must be located at least two directories deep (e.g., /
+deployments/config/persistence.xml).
+An example EclipseLink persistence configuration looks like this:
+polaris.persistence.type=eclipse-link
+polaris.persistence.eclipselink.configuration-file=/path/to/persistence.xml
+polaris.persistence.eclipselink.persistence-unit=polaris
+This setup is useful for legacy compatibility or custom use cases, but it lacks the
+flexibility and maintainability of the JDBC-based approach.
+Configuring Polaris for Production | 197
+If you’re moving from EclipseLink to JDBC, you may need to
+export and re-import metadata to align with schema expectations.
+With a durable metastore in place, Polaris can now safely persist your metadata
+across restarts, deployments, and environments.
+Hardening Defaults and Managing Feature Flags
+Once you’ve configured secure authentication and a persistent metastore, the next
+step in productionizing Polaris is to review and harden its default behaviors. Out of
+the box, Polaris includes several features meant to simplify development and testing,
+but many of these should be disabled or tightened before going live. In production,
+you’ll want to ensure that metadata operations are governed, storage locations are
+controlled, and test shortcuts are removed.
+Polaris provides a flexible feature-flag system to control behavior at both global and
+realm-specific levels.
+Disable test catalog initialization
+By default, Polaris may automatically initialize a default catalog using local file-based
+storage. This is helpful in local testing but should be explicitly disabled in production
+environments to avoid accidental exposure of ungoverned storage paths.
+To disable automatic catalog creation:
+polaris.features.realm-overrides."my-realm"."INITIALIZE_DEFAULT
+_CATALOG_FILEIO_FOR_TEST"=false
+Restrict supported storage types
+In development, Polaris allows catalogs to use any supported storage backend—
+including local file systems (FILE)—which are not suitable for production. To enforce
+stricter policies, use the following flag to allow only explicitly permitted catalog
+storage types:
+polaris.features.defaults."SUPPORTED_CATALOG_STORAGE_TYPES"=S3,GCS,AZURE
+Omit FILE entirely to ensure developers don’t accidentally create catalogs with inse‐
+cure or non-durable storage backends.
+Enforce credential rotation policies
+Credential hygiene is critical in multi-tenant environments. Polaris includes an
+optional flag to enforce that principals regularly rotate their credentials:
+198 | Chapter 10: Advanced Polaris Configuration and CLI Management
+polaris.features.defaults."ENFORCE_PRINCIPAL_CREDENTIAL_
+ROTATION_REQUIRED_CHECKING"=true
+This prevents long-lived, unmanaged secrets and encourages teams to treat Polaris
+credentials like any other secure infrastructure credential.
+Realm-specific overrides
+Feature flags can be applied globally or on a per-realm basis, giving you fine-grained
+control over different tenants, teams, or environments.
+For example, if you want to disable a feature just for the analytics realm:
+polaris.features.realm-overrides."analytics"."SKIP_CREDENTIAL_
+SUBSCOPING_INDIRECTION"=false
+This level of control is particularly useful in hybrid setups, where some realms may be
+experimental or isolated, while others are tightly regulated.
+Review logs for flag behavior
+If you'’e unsure which flags are active, or you want to confirm that test defaults
+are disabled, enable debug logging for Polaris’s configuration subsystem as noted in
+“Debugging configuration issues” on page 193:
+quarkus.log.category."io.smallrye.config".level=DEBUG
+This may expose sensitive configuration values. Use with caution
+and only in trusted environments.
+By locking down permissive defaults and activating relevant feature flags, you make
+Polaris safer, more predictable, and easier to operate in a compliance-sensitive pro‐
+duction setting.
+Scaling, Concurrency, and Rate Limits
+With security configured and metadata durability ensured, the final step in preparing
+Polaris for production is tuning its performance characteristics. While earlier sections
+focused on setting up secure authentication and persistent metastores, they also laid
+the groundwork for governance, including defining realms, setting up role-based
+access control, and applying privilege-based restrictions at the catalog, namespace,
+and table levels. These governance features ensure that users can only interact with
+the data they’re authorized to access, and that metadata operations are traceable and
+auditable.
+Configuring Polaris for Production | 199
+Polaris is designed to serve metadata requests at scale, from multiple compute
+engines, concurrent users, and across many realms and catalogs. To maintain pre‐
+dictable performance and protect against overload, Polaris provides configuration
+options for managing concurrency, task queues, and request rate limits. These set‐
+tings are especially important in multi-tenant or cloud-native environments, where
+sudden traffic surges or uneven usage patterns can strain shared infrastructure.
+Task concurrency
+Polaris processes metadata operations (such as creating tables or listing namespaces)
+as internal tasks. By default, it supports up to 100 concurrent tasks and queues up to
+1,000 additional tasks.
+You can tune these thresholds to match your deployment size and workload:
+polaris.tasks.max-concurrent-tasks=200
+polaris.tasks.max-queued-tasks=1000
+Increase limits if you expect high throughput from multiple compute engines (e.g.,
+Spark, Dremio, Snowflake). Decrease them to constrain resource usage on small or
+shared infrastructure.
+Monitor queue depth and task latency via metrics to help deter‐
+mine optimal values.
+Rate limiting with token buckets
+To further protect Polaris from overload or abuse (intentional or accidental), you can
+enable rate limiting via a token bucket algorithm. This approach allows short bursts
+of traffic but limits the average request rate over time.
+Enable token bucket rate limiting:
+polaris.rate-limiter.filter.type=token-bucket
+Then define the rate-limiting behavior:
+polaris.rate-limiter.token-bucket.requests-per-second=1000
+polaris.rate-limiter.token-bucket.window=PT10S
+This configuration allows a maximum of 10,000 requests every 10 seconds (on aver‐
+age). You can fine-tune these settings based on expected usage and load testing. To
+disable rate limiting entirely (not recommended for production), set:
+polaris.rate-limiter.filter.type=no-op
+200 | Chapter 10: Advanced Polaris Configuration and CLI Management
+Scaling considerations
+Polaris can scale horizontally behind a load balancer, especially when used with
+a shared metastore like PostgreSQL. If you’re deploying Polaris in a containerized
+environment (e.g., Kubernetes), consider:
+• Running multiple replicas with a shared external metastore
+•
+• Using externalized configuration (via ConfigMaps or mounted volumes)
+•
+• Scaling based on CPU or request latency metrics
+•
+• Monitoring thread pool and connection pool sizes, especially under heavy meta‐
+•
+data workloads
+Polaris is stateless from a service perspective, so scaling is largely a matter of infra‐
+structure sizing and backend capacity.
+By tuning concurrency limits, enforcing rate policies, and scaling your deployment
+appropriately, you can ensure that Polaris remains responsive and stable under real-
+world production conditions, even as workloads grow and new teams onboard.
+Finalizing and Verifying Your Production Setup
+At this point, you’ve laid the groundwork for a secure, durable, and scalable Polaris
+deployment. But before onboarding users or integrating compute engines, it’s critical
+to validate that all the key components are functioning as expected. A properly
+configured deployment should not only serve metadata requests but also enforce
+access policies, persist state across restarts, and expose visibility through logs, metrics,
+and traces.
+Here’s a checklist you can use to verify your production setup:
+☐
+☐ Issue an OAuth2 token using your realm’s client_id and client_secret via
+the /oauth/tokens endpoint.
+☐
+☐ Create a catalog and confirm metadata is durably stored in your configured
+metastore (e.g., PostgreSQL).
+☐
+☐ Bootstrap a realm and use the CLI to create and assign roles, then test access with
+scoped credentials.
+☐
+☐ Check the /q/metrics endpoint to ensure Prometheus-compatible metrics are
+exposed and tagged correctly.
+☐
+☐ Validate that OpenTelemetry traces are reaching your configured collector and
+include realm and request IDs.
+☐
+☐ Inspect logs to confirm they are structured, contain MDC fields, and rotate as
+expected.
+Configuring Polaris for Production | 201
+☐
+☐ Confirm test defaults (like file-based storage and default catalog initialization) are
+disabled.
+If all of the above checks pass, you’ve successfully transitioned Polaris from a devel‐
+opment tool into a production-ready metadata platform. You now have a secure
+foundation for cross-team collaboration, multi-tenant data governance, and scalable
+catalog management.
+Conclusion
+Polaris is more than just a catalog; it’s a foundation for building reliable, governed,
+and multi-tenant data platforms on Apache Iceberg. While earlier chapters intro‐
+duced its architectural concepts and hands-on usage, this chapter focused on what it
+takes to run Polaris in the real world.
+We explored how to secure a Polaris deployment with robust authentication, how
+to persist metadata durably using production-grade metastores, and how to harden
+system behavior through configurable feature flags. We also covered how to monitor
+and debug Polaris using a rich observability stack—metrics, traces, and logs—all
+designed to help operators understand what’s happening and why.
+Beyond its internal configuration, Polaris also provides a powerful command-line
+interface for managing catalogs, principals, roles, and privileges. This makes it easy
+to automate administration, integrate with CI/CD workflows, or maintain consistent
+governance across environments.
+With these capabilities in hand, you’re equipped to deploy Polaris with confidence—
+securely, at scale, and with the observability required to support production-grade
+data operations. Whether you’re building for internal teams, external customers, or
+both, Polaris offers the flexibility and control to serve as the metadata backbone of
+your lakehouse architecture.

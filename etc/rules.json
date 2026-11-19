@@ -1,0 +1,19 @@
+{
+  "catalogs": [
+    {
+      "user": "admin",
+      "catalog": ".*",
+      "allow": "all"
+    },
+    {
+      "user": "analyst",
+      "catalog": "(postgres|iceberg|global_sales)",
+      "allow": "read-only"
+    },
+    {
+      "user": "analyst",
+      "catalog": "(system|tpch|tpcds|memory)",
+      "allow": "none"
+    }
+  ]
+}

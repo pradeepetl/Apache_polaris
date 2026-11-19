@@ -1,0 +1,1853 @@
+In this chapter, we will delve into the REST API provided by Apache Polaris for man‐
+aging catalogs, roles, namespaces, tables, and views. The Polaris REST API enables
+seamless and programmatic interaction with the catalog layer of your data lakehouse,
+making it easier to orchestrate complex operations across distributed environments.
+Whether adding a new catalog, defining access control through roles and principals,
+or performing granular namespace and table operations, the Polaris REST API pro‐
+vides the flexibility to handle these tasks efficiently. By leveraging this API, teams can
+automate catalog management tasks, ensuring scalability, consistency, and improved
+governance within their data platform.
+We will break down each endpoint, exploring its purpose and showcasing its usage
+with cURL and Python’s requests library. By the end of this chapter, you will have
+a solid understanding of how to programmatically manage your Polaris deployment
+and integrate it into your workflows.
+The following sections examine the Polaris Management REST API endpoints specif‐
+ically, grouped by functionality (this differs from the Apache Icicle REST catalog spec
+and endpoints). There is also a Python CLI built into the Polaris Repo that can be
+used to execute most of the tasks without having to write custom scripts or use an
+HTTP client like cURL, Postman, or Insomnia.
+You can always find the latest version of this REST Spec here:
+https://github.com/apache/polaris/blob/main/spec/polaris-management-service.yml
+All endpoints in sections 5.1-5.3 are prefixed with /api/management/v1. For exam‐
+ple, the /catalogs endpoint becomes /api/management/v1/catalogs.
+63
+Catalog Operations
+The Polaris REST API provides endpoints for performing Create, Read, Update,
+and Delete (CRUD) operations on catalogs. These operations form the foundation
+of catalog management, enabling you to define, query, update, and remove catalogs
+programmatically.
+List Catalogs
+Retrieve a list of all catalogs in the Polaris deployment.
+Endpoint:
+GET /catalogs
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/management/v1/catalogs \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/catalogs"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"catalogs": [
+{
+"type": "INTERNAL",
+"name": "example_catalog",
+"properties": {
+"default-base-location": "s3://bucket/path"
+},
+"createTimestamp": 1622547800000,
+"lastUpdateTimestamp": 1622547900000,
+"entityVersion": 1,
+"storageConfigInfo": {
+"storageType": "S3",
+"allowedLocations": "For AWS [s3://bucketname/prefix/],
+for AZURE [abfss://container@storageaccount.blob.core.windows.net
+/prefix/],
+for GCP [gs://bucketname/prefix/]"
+}
+}
+64 | Chapter 5: Polaris REST API
+]
+}
+Create a Catalog
+Add a new catalog to the Polaris deployment. Catalogs can be internal or external.
+Endpoint:
+POST /catalogs
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/management/v1/catalogs \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"catalog": {
+"type": "INTERNAL",
+"name": "example_catalog",
+"properties": {
+"default-base-location": "s3://bucket/path"
+}
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/catalogs"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"catalog": {
+"type": "INTERNAL",
+"name": "example_catalog",
+"properties": {
+"default-base-location": "s3://bucket/path"
+}
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code, response.json())
+Sample response:
+{
+"catalog": {
+"type": "INTERNAL",
+"name": "example_catalog",
+"properties": {
+Catalog Operations | 65
+"default-base-location": "s3://bucket/path"
+},
+"createTimestamp": 1533547800000,
+"lastUpdateTimestamp": 1627647800000,
+"entityVersion": 1
+}
+}
+Get Catalog Details
+Retrieve detailed information about a specific catalog by name.
+Endpoint:
+GET /catalogs/{catalogName}
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/management/v1
+/catalogs/example_catalog \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/catalogs/example_catalog"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"type": "INTERNAL",
+"name": "example_catalog",
+"properties": {
+"default-base-location": "s3://bucket/path",
+"property1": "value1",
+"property2": "value2"
+},
+"createTimestamp": 143547800000,
+"lastUpdateTimestamp": 1538547900000,
+"entityVersion": 1
+}
+Update a Catalog
+Update the details of an existing catalog. The request must include the current
+entityVersion of the catalog.
+66 | Chapter 5: Polaris REST API
+Endpoint:
+PUT /catalogs/{catalogName}
+Sample cURL request:
+curl -X PUT https://polaris.example.com/api/management/v1
+/catalogs/example_catalog \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"currentEntityVersion": 1,
+"properties": {
+"default-base-location": "s3://new_bucket/path"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/catalogs/example_catalog"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"currentEntityVersion": 1,
+"properties": {
+"default-base-location": "s3://new_bucket/path"
+}
+}
+response = requests.put(url, headers=headers, json=payload)
+print(response.status_code, response.json())
+Sample response:
+{
+"type": "INTERNAL",
+"name": "example_catalog",
+"properties": {
+"default-base-location": "s3://new_bucket/path",
+"property1": "value1",
+"property2": "value2"
+},
+"createTimestamp": 1622547800000,
+"lastUpdateTimestamp": 1622548000000,
+"entityVersion": 2
+}
+Delete a Catalog
+Remove an existing catalog. The catalog must be empty before deletion.
+Catalog Operations | 67
+Endpoint:
+DELETE /catalogs/{catalogName}
+Sample cURL request:
+curl -X DELETE https://polaris.example.com/api/management/v1/catalogs
+/example_catalog \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/catalogs/example_catalog"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.delete(url, headers=headers)
+print(response.status_code)
+Sample response:
+Empty response if successful.
+Principal Operations
+Principals in Apache Polaris represent entities (such as users or services) that interact
+with the system. The REST API provides CRUD (Create, Read, Update, Delete)
+operations for managing principals and the ability to rotate credentials. This section
+covers each of these endpoints with sample requests and responses.
+List Principals
+Retrieve all the principals currently available in the Polaris catalog.
+Endpoint:
+GET /principals
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principals \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/principals"
+headers = {"Authorization": "Bearer <ACCESS_TOKEN>"}
+68 | Chapter 5: Polaris REST API
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"principal": {
+"name": "string",
+"clientId": "string",
+"properties": {
+"property1": "string",
+"property2": "string"
+},
+"createTimestamp": 0,
+"lastUpdateTimestamp": 0,
+"entityVersion": 0
+},
+"credentials": {
+"clientId": "string",
+"clientSecret": "pa$$word"
+}
+}
+Create a Principal
+Create a new principal for interacting with the Polaris system.
+Endpoint:
+POST /principals
+Sample cURL request:
+curl -X POST \
+https://polaris.example.com/api/management/v1/principals \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"principal": {
+"name": "data_analyst",
+"clientId": "analyst321",
+"properties": {
+"team": "analytics",
+"region": "us-west"
+}
+},
+"credentialRotationRequired": true
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/principals"
+Principal Operations | 69
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+data = {
+"principal": {
+"name": "data_analyst",
+"clientId": "analyst321",
+"properties": {
+"team": "analytics",
+"region": "us-west"
+}
+},
+"credentialRotationRequired": True
+}
+response = requests.post(url, headers=headers, json=data)
+print(response.json())
+Sample response:
+{
+"principal": {
+"name": "data_analyst",
+"clientId": "analyst321",
+"properties": {
+"team": "analytics",
+"region": "us-west"
+},
+"createTimestamp": 1694372200000,
+"lastUpdateTimestamp": 1694372200000,
+"entityVersion": 1
+},
+"credentials": {
+"clientId": "analyst321",
+"clientSecret": "secure$Password123"
+}
+}
+Get Principal Details
+Fetch details of a specific principal by name.
+Endpoint:
+GET /principals/{principalName}
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principals/data_analyst \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+70 | Chapter 5: Polaris REST API
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/principals/data_analyst"
+headers = {"Authorization": "Bearer <ACCESS_TOKEN>"}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"name": "data_analyst",
+"clientId": "analyst321",
+"properties": {
+"team": "analytics",
+"region": "us-west"
+},
+"createTimestamp": 1694372200000,
+"lastUpdateTimestamp": 1694378400000,
+"entityVersion": 1
+}
+Update a Principal
+Update details of an existing principal, such as properties or version.
+Endpoint:
+PUT /principals/{principalName}
+Sample cURL request:
+curl -X PUT \
+https://polaris.example.com/api/management/v1/principals/data_analyst \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"currentEntityVersion": 1,
+"properties": {
+"team": "analytics",
+"region": "us-east",
+"project": "forecasting"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/principals/data_analyst"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+Principal Operations | 71
+data = {
+"currentEntityVersion": 1,
+"properties": {
+"team": "analytics",
+"region": "us-east",
+"project": "forecasting"
+}
+}
+response = requests.put(url, headers=headers, json=data)
+print(response.json())
+Sample response:
+{
+"name": "data_analyst",
+"clientId": "analyst321",
+"properties": {
+"team": "analytics",
+"region": "us-east",
+"project": "forecasting"
+},
+"createTimestamp": 1694372200000,
+"lastUpdateTimestamp": 1694378400000,
+"entityVersion": 2
+}
+Delete a Principal
+Delete an existing principal from the system.
+Endpoint:
+DELETE /principals/{principalName}
+Sample cURL request:
+curl -X DELETE \
+https://polaris.example.com/api/management/v1/principals/data_analyst \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/principals/data_analyst"
+headers = {"Authorization": "Bearer <ACCESS_TOKEN>>"}
+response = requests.delete(url, headers=headers)
+print(response.status_code)
+If successful, this request will have an empty response.
+72 | Chapter 5: Polaris REST API
+Rotate Principal Credentials
+Rotate credentials for a specific principal and return the new credentials.
+Endpoint:
+POST /principals/{principalName}/rotate
+Sample cURL request:
+curl -X POST \
+https://polaris.example.com/api/management/v1/principals/data_analyst/rotate \
+-H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/management/v1/principals
+/data_analyst/rotate"
+headers = {"Authorization": "Bearer <ACCESS_TOKEN>"}
+response = requests.post(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"principal": {
+"name": "data_analyst",
+"clientId": "analyst321",
+"properties": {
+"team": "analytics",
+"region": "us-east",
+"project": "forecasting"
+},
+"createTimestamp": 1694372200000,
+"lastUpdateTimestamp": 1694378400000,
+"entityVersion": 2
+},
+"credentials": {
+"clientId": "analyst321",
+"clientSecret": "new$Password456"
+}
+}
+These endpoints provide everything needed to create, update, delete and list princi‐
+pals in Apache Polaris.
+Managing Roles
+Apache Polaris provides a set of APIs to manage permissions between catalogs and
+principals. These APIs allow you to grant, list, and revoke privileges, ensuring secure
+Managing Roles | 73
+and efficient access management across your data lakehouse. This section outlines
+each endpoint with detailed descriptions, sample requests, and responses.
+Create a Catalog Role
+Create a new role within a catalog.
+Endpoint:
+POST /catalogs/{catalogName}/catalog-roles
+Sample cURL request:
+curl -X POST \
+https://polaris.example.com/api/management/v1/catalogs/finance_catalog
+/catalog-roles \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"catalogRole": {
+"name": "viewer",
+"properties": {
+"permissions": "read_only"
+}
+}
+}'
+Create a Principal Role
+Create a new principal role.
+Endpoint:
+POST /principal-roles
+Sample cURL request:
+curl -X POST \
+https://polaris.example.com/api/management/v1/principal-roles \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"principalRole": {
+"name": "report_viewer",
+"properties": {
+"access_scope": "read_only"
+}
+}
+}'
+74 | Chapter 5: Polaris REST API
+List Catalog Roles
+List all roles within a catalog.
+Endpoint:
+GET /catalogs/{catalogName}/catalog-roles
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/catalogs/finance_catalog
+/catalog-roles \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+List Roles Assigned to a Principal
+Retrieve all roles assigned to a specific principal.
+Endpoint:
+GET /principals/{principalName}/principal-roles
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principals/john_doe
+/principal-roles \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+List All Principal Roles
+Retrieve a list of all principal roles in the system.
+Endpoint:
+GET /principal-roles
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principal-roles \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+List Principals Assigned to a Principal Role
+Retrieve a list of principals who are assigned a specific principal role.
+Endpoint:
+GET /principal-roles/{principalRoleName}/principals
+Managing Roles | 75
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer
+/principals \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Get Catalog Roles Mapped to a Principal Role
+Retrieve catalog roles mapped to a specific principal role for a catalog.
+Endpoint:
+GET /principal-roles/{principalRoleName}/catalog-roles/{catalogName}
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer
+/catalog-roles/finance_catalog \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Get Details of a Principal Role
+Retrieve details of a specific principal role.
+Endpoint:
+GET /principal-roles/{principalRoleName}
+Sample cURL request:
+curl -X GET \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Add a Grant to a Catalog Role
+Add a permissions grant to a catalog, determining the kind of access to the catalog’s
+assets.
+Endpoint:
+PUT /catalogs/{catalogName}/catalog-roles/{catalogRoleName}/grants
+Sample cURL request:
+curl -X PUT "https://polaris.example.com/api/management/v1/catalogs/finance
+/catalog-roles/analyst/grants" \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"grant": {
+"type": "catalog",
+76 | Chapter 5: Polaris REST API
+"privilege": "CATALOG_MANAGE_CONTENT"
+}
+}'
+Revoke a Grant from a Catalog Role
+Revoke permissions from a particular Catalog Role.
+Endpoint:
+DELETE /catalogs/{catalogName}/catalog-roles/{catalogRoleName/grants
+Example cURL Request:
+curl -X DELETE "https://polaris.example.com/api/management/v1/catalogs/finance
+/catalog-roles/analyst/grants?cascade=true" \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"grant": {
+"type": "catalog",
+"privilege": "CATALOG_MANAGE_CONTENT"
+}
+}'
+Assign a Catalog Role to a Principal Role
+Assign a catalog role to a principal role within a catalog.
+Endpoint:
+PUT /principal-roles/{principalRoleName}/catalog-roles/{catalogName}
+Sample cURL request:
+curl -X PUT \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer
+/catalog-roles/finance_catalog \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"catalogRole": {
+"name": "editor",
+"properties": {
+"edit_scope": "limited"
+}
+}
+}'
+Assign a Role to a Principal
+Assign a specific role to a principal.
+Managing Roles | 77
+Endpoint:
+PUT /principals/{principalName}/principal-roles
+Sample cURL request:
+curl -X PUT \
+https://polaris.example.com/api/management/v1/principals/john_doe
+/principal-roles \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"principalRole": {
+"name": "data_admin",
+"properties": {
+"access_level": "full"
+}
+}
+}'
+Update a Principal Role
+Update the details of an existing principal role.
+Endpoint:
+PUT /principal-roles/{principalRoleName}
+Sample cURL request:
+curl -X PUT \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"currentEntityVersion": 2,
+"properties": {
+"access_scope": "write_enabled"
+}
+}'
+Revoke a Role from a Principal
+Remove a specific role from a principal.
+Endpoint:
+DELETE /principals/{principalName}/principal-roles/{principalRoleName}
+Sample cURL request:
+curl -X DELETE \
+https://polaris.example.com/api/management/v1/principals/john_doe
+/principal-roles/data_admin \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+78 | Chapter 5: Polaris REST API
+Revoke a Catalog Role from a Principal Role
+Remove a catalog role from a principal role within a catalog.
+Endpoint:
+DELETE /principal-roles/{principalRoleName}/catalog-roles/{catalogName}/{catalogRoleName}
+Sample cURL request:
+curl -X DELETE \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer
+/catalog-roles/finance_catalog/editor \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Delete a Principal Role
+Delete an existing principal role.
+Endpoint:
+DELETE /principal-roles/{principalRoleName}
+Sample cURL request:
+curl -X DELETE \
+https://polaris.example.com/api/management/v1/principal-roles/report_viewer \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Delete a Catalog Role
+Delete an existing catalog role.
+Endpoint:
+DELETE /catalogs/{catalogName}/catalog-roles/{catalogRoleName}
+Sample cURL request:
+curl -X DELETE \
+https://polaris.example.com/api/management/v1/catalogs/finance_catalog
+/catalog-roles/viewer \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+These are the endpoints for managing catalog and principal roles, ensuring users can
+handle their access control effectively in Apache Polaris.
+Apache Iceberg REST Catalog Endpoints
+This section covers the endpoints provided by Apache Polaris that implement the
+Apache Iceberg REST Catalog Specification. These endpoints allow clients to interact
+with catalogs, namespaces, tables, and views in a standardized and interoperable way.
+Apache Iceberg REST Catalog Endpoints | 79
+Each endpoint is prefixed by /api/catalog/ in Polaris. For example, the Iceberg
+spec’s /v1/config would be accessed as /api/catalog/v1/config in Polaris.
+These APIs are designed for compatibility with tools and engines that speak the Ice‐
+berg REST standard, enabling advanced catalog operations like schema management,
+table creation, and view control. While Polaris also provides its own management
+API (covered in Sections 5.1 through 5.3), the Iceberg REST Catalog endpoints enable
+broader ecosystem interoperability and integration with external engines.
+The following subsections describe each group of endpoints, beginning with a short
+summary of its purpose, followed by the corresponding API definitions.
+The latest version of Apache Iceberg REST Catalog Spec can be found here:
+https://github.com/apache/iceberg/blob/main/open-api/rest-catalog-open-api.yaml
+Configuration API
+Retrieve server-supplied default and override configuration properties for initializing
+and managing Iceberg catalog clients.
+Endpoint:
+GET /v1/config
+Clients should call this endpoint first to obtain default and override properties that
+determine how the catalog client should behave. The response includes:
+Defaults
+Settings applied before client configuration
+Overrides
+Settings applied after client configuration
+Optional endpoints list
+Enumerates which Iceberg REST routes are supported
+These values guide client behavior such as pooling size, endpoint routing, and ware‐
+house location. Learn more in the Iceberg documentation on catalog properties.
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/catalog/v1/config \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+80 | Chapter 5: Polaris REST API
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/config"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"defaults": {
+"client.pool.size": "4",
+"catalog.name": "main"
+},
+"overrides": {
+"warehouse": "s3://bucket/warehouse/"
+},
+"endpoints": [
+"GET /v1/{prefix}/namespaces",
+"POST /v1/{prefix}/namespaces",
+"GET /v1/{prefix}/namespaces/{namespace}",
+"DELETE /v1/{prefix}/namespaces/{namespace}",
+"GET /v1/{prefix}/namespaces/{namespace}/tables"
+]
+}
+OAuth2 API
+Exchange credentials or tokens using the OAuth 2.0 client credentials or token
+exchange flows.
+This endpoint is deprecated and will be removed; it is not recom‐
+mended for new implementations. Use the oauth2-server-uri
+configuration property instead to integrate with external identity
+providers.
+Endpoint:
+POST /v1/oauth/tokens
+Apache Iceberg REST Catalog Endpoints | 81
+This endpoint was originally designed to support three flows:
+Client Credentials Flow
+Exchange client ID and secret for an access token.
+Token Exchange Flow (Actor + Subject)
+Exchange a client token and identity token for a new access token with user
+context.
+Token Refresh Flow
+Exchange an expiring token for a new one with a refreshed expiration.
+These capabilities are being phased out in favor of more secure, explicitly configured
+OAuth integration patterns.
+Sample cURL Request (Client Credentials Flow):
+curl -X POST https://polaris.example.com/api/catalog/v1/oauth/tokens \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d 'grant_type=client_credentials&client_id=your-client-
+id&client_secret=your-client-secret'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/oauth/tokens"
+headers = {
+"Content-Type": "application/x-www-form-urlencoded"
+}
+payload = {
+"grant_type": "client_credentials",
+"client_id": "your-client-id",
+"client_secret": "your-client-secret"
+}
+response = requests.post(url, headers=headers, data=payload)
+print(response.json())
+Sample response:
+{
+"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+"token_type": "Bearer",
+"expires_in": 3600
+}
+Table API
+Perform operations to create, register, update, load, delete, and rename Iceberg tables
+in the catalog.
+82 | Chapter 5: Polaris REST API
+Base Endpoint Prefix:
+/v1/{prefix}/namespaces/{namespace}/tables
+The Table API allows clients to manage the full lifecycle of Iceberg tables program‐
+matically. This includes creating new tables, registering existing ones by metadata
+location, committing schema or snapshot changes, and retrieving table metadata.
+These endpoints enable automation and integration with ingestion pipelines, CI/CD
+workflows, and schema management tools.
+List Table Identifiers
+Retrieve all table identifiers under a specified namespace.
+Endpoint:
+GET /v1/{prefix}/namespaces/{namespace}/tables
+This endpoint returns a list of all Iceberg tables within the given namespace. It is
+useful for discovery and inventory tasks, such as enumerating datasets for a team
+or validating ingestion pipelines. Results may be paginated using page-size and
+page-token query parameters.
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics/tables \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics/tables"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"identifiers": [
+{
+"namespace": ["analytics"],
+"name": "monthly_sales"
+},
+{
+"namespace": ["analytics"],
+Apache Iceberg REST Catalog Endpoints | 83
+"name": "user_events"
+},
+{
+"namespace": ["analytics"],
+"name": "product_catalog"
+}
+]
+}
+Create a Namespace
+Create a new namespace with optional metadata properties.
+Endpoint:
+POST /v1/{prefix}/namespaces
+This endpoint creates a new logical namespace for organizing tables and views within
+the catalog. Namespaces can represent teams, domains, or business units. You may
+optionally supply metadata properties (such as owner or description). If the name‐
+space already exists, the request will fail with a conflict response.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev_team/namespaces \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"namespace": ["analytics"],
+"properties": {
+"owner": "data.platform@company.com",
+"created_by": "automation_pipeline"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev_team/namespaces"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"namespace": ["analytics"],
+"properties": {
+"owner": "data.platform@company.com",
+"created_by": "automation_pipeline"
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+84 | Chapter 5: Polaris REST API
+print(response.json())
+Sample response:
+{
+"namespace": ["analytics"],
+"properties": {
+"owner": "data.platform@company.com",
+"created_by": "automation_pipeline",
+"last_modified_time": "2025-06-20T13:45:00Z"
+}
+}
+Load Namespace Properties
+Retrieve all stored metadata properties for a given namespace.
+Endpoint:
+GET /v1/{prefix}/namespaces/{namespace}
+This endpoint fetches metadata properties associated with a specific namespace.
+Properties may include custom fields, such as owner, description, creation metadata,
+or system-managed values, like the last modified time. This is useful for managing
+schema boundaries, auditing ownership, or integrating namespace metadata into
+external tooling.
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev_team/namespaces/analytics"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"namespace": ["analytics"],
+"properties": {
+"owner": "data.platform@company.com",
+Apache Iceberg REST Catalog Endpoints | 85
+"description": "Namespace for analytics tables and dashboards",
+"last_modified_time": "2025-06-20T14:10:00Z"
+}
+}
+Check Namespace Existence
+Verify whether a specific namespace exists in the catalog.
+Endpoint:
+HEAD /v1/{prefix}/namespaces/{namespace}
+This lightweight endpoint allows you to check if a namespace exists without retriev‐
+ing its metadata. It returns HTTP 204 No Content if the namespace exists or 404
+Not Found if it does not. This is useful for validation steps in automation scripts or
+provisioning workflows.
+Sample cURL request:
+curl -I -X HEAD https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev_team/namespaces/analytics"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.head(url, headers=headers)
+print(response.status_code) # 204 if exists, 404 if not
+Sample response:
+•
+• 204 No Content: Namespace exists
+• 404 Not Found: Namespace does not exist
+•
+Drop a Namespace
+Remove a namespace from the catalog. The namespace must be empty before
+deletion.
+Endpoint:
+DELETE /v1/{prefix}/namespaces/{namespace}
+This endpoint deletes a namespace and its associated metadata. The namespace must
+not contain any tables, views, or child namespaces. Attempting to delete a non-empty
+86 | Chapter 5: Polaris REST API
+namespace will result in a conflict error. This operation is typically used for cleanup
+or when decommissioning a data domain.
+Sample cURL request:
+curl -X DELETE https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev_team/namespaces/analytics"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.delete(url, headers=headers)
+print(response.status_code) # 204 if successful, 409 if namespace not empty
+Sample response:
+• 204 No Content: Namespace successfully deleted
+•
+•
+• 404 Not Found: Namespace does not exist
+•
+• 409 Conflict: Namespace is not empty
+Set or Remove Namespace Properties
+Update or delete properties on an existing namespace.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/properties
+This endpoint allows clients to modify metadata for a namespace by setting new
+key-value pairs and/or removing existing ones. Only the properties specified in the
+request will be changed; unspecified properties remain untouched. This is useful for
+updating ownership, lifecycle tags, or automation-related flags.
+Not all catalog implementations are required to support namespace properties.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics/properties \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+Apache Iceberg REST Catalog Endpoints | 87
+-d '{
+"updates": {
+"owner": "dataops@company.com",
+"environment": "production"
+},
+"removals": ["created_by"]
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev_team/namespaces
+/analytics/properties"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"updates": {
+"owner": "dataops@company.com",
+"environment": "production"
+},
+"removals": ["created_by"]
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.json())
+Sample response:
+{
+"namespace": ["analytics"],
+"properties": {
+"owner": "dataops@company.com",
+"environment": "production"
+}
+}
+Create a Table
+Create a new Iceberg table within the specified namespace.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/tables
+This endpoint creates a new Iceberg table with an initial schema and optional config‐
+uration properties. You can either make the table immediately (stage-create: false) or
+initiate a staged transaction for committing later (stage-create: true).
+Use staged creation if your workflow involves multiple operations (e.g., schema, sort
+order, partitioning) that should be committed atomically. The response includes the
+88 | Chapter 5: Polaris REST API
+metadata needed to complete the transaction using the “Commit Updates to a Table”
+endpoint.
+Sample cURL Request (Immediate Creation):
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"name": "customer_profiles",
+"schema": {
+"type": "struct",
+"fields": [
+{ "id": 1, "name": "customer_id", "required": true, "type":
+"long" },
+{ "id": 2, "name": "email", "required": false, "type":
+"string" },
+{ "id": 3, "name": "created_at", "required": true, "type":
+"timestamp" }
+]
+},
+"spec": { "fields": [ { "source-id": 3, "transform": "day", "name":
+"day_created" } ] },
+"stage-create": false
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/tables"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"name": "customer_profiles",
+"schema": {
+"type": "struct",
+"fields": [
+{ "id": 1, "name": "customer_id", "required": True, "type": "long" },
+{ "id": 2, "name": "email", "required": False, "type": "string" },
+{ "id": 3, "name": "created_at", "required": True, "type":
+"timestamp" }
+]
+},
+"spec": {
+"fields": [
+{ "source-id": 3, "transform": "day", "name": "day_created" }
+]
+},
+Apache Iceberg REST Catalog Endpoints | 89
+"stage-create": False
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.json())
+Sample response:
+{
+"metadata-location": "s3://warehouse/analytics/customer_profiles
+/metadata/00000.metadata.json",
+"table-uuid": "9bde37b3-fc9e-4b32-9b9e-abc123def456"
+}
+Register a Table
+Register an existing Iceberg table in the catalog using its metadata location.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/register
+This endpoint allows clients to register a preexisting Iceberg table by specifying
+the full path to its metadata JSON file. This is commonly used when migrating or
+recovering tables from storage that were created outside of the catalog, such as those
+bootstrapped manually or recovered after system failure.
+Once registered, the table becomes fully managed and queryable via the catalog.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/register \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"name": "recovered_events",
+"metadata-location": "s3://warehouse/analytics/recovered_events
+/metadata/00000.metadata.json"
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/register"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"name": "recovered_events",
+90 | Chapter 5: Polaris REST API
+"metadata-location": "s3://warehouse/analytics/recovered_events
+/metadata/00000.metadata.json"
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.json())
+Sample response:
+{
+"metadata-location": "s3://warehouse/analytics/recovered_events
+/metadata/00000.metadata.json",
+"table-uuid": "52f7ab2e-47d1-4d96-9f5c-d6e12a77de2a"
+}
+Load Table Metadata
+Retrieve the full metadata and optional configuration for a specific Iceberg table.
+Endpoint:
+GET /v1/{prefix}/namespaces/{namespace}/tables/{table}
+This endpoint loads the metadata of an Iceberg table, including its schema, partition
+specification, properties, and configuration overrides. The returned metadata can
+be used for planning queries, validating schema versions, or understanding a table’s
+structure and lifecycle.
+Clients may optionally include an If-None-Match header to return HTTP 304 Not
+Modified if the metadata hasn’t changed since the last load. You may also use the
+snapshots query parameter to control which snapshots are returned (all or refs).
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/tables/customer_profiles"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Apache Iceberg REST Catalog Endpoints | 91
+Sample response:
+{
+"metadata-location": "s3://warehouse/analytics/customer_profiles
+/metadata/00001.metadata.json",
+"table-uuid": "9bde37b3-fc9e-4b32-9b9e-abc123def456",
+"schema": {
+"type": "struct",
+"fields": [
+{ "id": 1, "name": "customer_id", "required": true, "type": "long" },
+{ "id": 2, "name": "email", "required": false, "type": "string" },
+{ "id": 3, "name": "created_at", "required": true, "type": "timestamp" }
+]
+},
+"spec": {
+"fields": [
+{ "source-id": 3, "transform": "day", "name": "day_created" }
+]
+},
+"last-sequence-number": 7,
+"last-snapshot-id": 7452913019,
+"snapshots": [
+{
+"snapshot-id": 7452913019,
+"timestamp-ms": 1721234567890,
+"operation": "append",
+"manifest-list": "s3://.../manifests/manifest-list.avro"
+}
+]
+}
+Commit Updates to a Table
+Commit changes to an Iceberg table, such as appending data files, updating schemas,
+or completing staged creation.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/tables/{table}
+This endpoint applies changes to an existing table, including new snapshots (e.g.,
+appends or overwrites), updated schemas, or updated table metadata. It is also used
+to finalize a staged table created earlier using stage-create: true. The request must
+include the current table metadata location and a new version of the metadata file
+that reflects the desired changes.
+Concurrency is managed via optimistic locking: the commit will succeed only if the
+provided base metadata location matches the current state of the table.
+92 | Chapter 5: Polaris REST API
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"updates": {
+"metadata-location": "s3://warehouse/analytics
+/customer_profiles/metadata/00002.metadata.json",
+"base": "s3://warehouse/analytics/customer_profiles
+/metadata/00001.metadata.json"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics/tables
+/customer_profiles"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"updates": {
+"metadata-location": "s3://warehouse/analytics/customer_profiles
+/metadata/00002.metadata.json",
+"base": "s3://warehouse/analytics/customer_profiles/metadata
+/00001.metadata.json"
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+{
+"metadata-location": "s3://warehouse/analytics/customer_profiles
+/metadata/00002.metadata.json",
+"table-uuid": "9bde37b3-fc9e-4b32-9b9e-abc123def456"
+}
+Drop a Table
+Endpoint:
+Delete an Iceberg table from the catalog, with the option to purge data.
+DELETE /v1/{prefix}/namespaces/{namespace}/tables/{table}
+Apache Iceberg REST Catalog Endpoints | 93
+This endpoint removes a table from the catalog. By default, this deletes only the cata‐
+log entry, preserving the underlying data files. To also purge the data (e.g., metadata
+files, manifests, and data files), include the query parameter purgeRequested=true.
+Use this operation with care in production environments, especially when using
+purgeRequested=true, as it will permanently delete storage assets managed by the
+table.
+Sample cURL Request (catalog only):
+curl -X DELETE https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample cURL Request (catalog + data purge):
+curl -X DELETE "https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles?purgeRequested=true" \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python Request (with purge):
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/tables/customer_profiles?purgeRequested=true"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.delete(url, headers=headers)
+print(response.status_code)
+Sample response:
+•
+• 204 No Content: Table deleted successfully
+• 404 Not Found: Table not found
+•
+• 409 •
+Conflict: Table cannot be deleted (e.g., in use or write conflict)
+Check Table Existence
+Verify whether a specific table exists in the catalog.
+Endpoint:
+HEAD /v1/{prefix}/namespaces/{namespace}/tables/{table}
+This lightweight endpoint checks whether a given Iceberg table exists in the specified
+namespace. It does not return any metadata or payload; it only returns an HTTP
+status code. This is useful for validation in automation workflows, such as confirming
+table creation before inserting data or avoiding accidental overwrites.
+94 | Chapter 5: Polaris REST API
+Sample cURL request:
+curl -I -X HEAD https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/tables/customer_profiles"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.head(url, headers=headers)
+if response.status_code == 204:
+print("Table exists.")
+elif response.status_code == 404:
+print("Table not found.")
+else:
+print(f"Unexpected status: {response.status_code}")
+Sample response:
+• 204 No Content: Table exists
+•
+•
+• 404 Not Found: Table does not exist
+Rename a Table
+Change the name of an existing Iceberg table within the same namespace or across
+namespaces.
+Endpoint:
+POST /v1/{prefix}/rename
+This endpoint renames an Iceberg table by moving it from its current identifier to
+a new one. The source and destination identifiers can refer to the same namespace
+or different namespaces. The operation updates the catalog reference; the underlying
+metadata and data files remain unchanged.
+If the target table name already exists, the request will fail with a 409 Sample cURL request:
+Conflict status.
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/rename \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"source": {
+"namespace": ["analytics"],
+Apache Iceberg REST Catalog Endpoints | 95
+"name": "customer_profiles"
+},
+"destination": {
+"namespace": ["analytics"],
+"name": "customer_profiles_archive"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/rename"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"source": {
+"namespace": ["analytics"],
+"name": "customer_profiles"
+},
+"destination": {
+"namespace": ["analytics"],
+"name": "customer_profiles_archive"
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+• 200 OK: Table successfully renamed
+•
+•
+• 404 Not Found: Source table does not exist
+• 409 Conflict: Destination table already exists
+•
+Submit Metrics for a Table
+Submit performance, access, or operational metrics associated with a table.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/tables/{table}/metrics
+This endpoint allows clients to submit custom metrics related to an Iceberg table.
+These can include statistics like query latency, row counts, file sizes, or domain-
+specific metrics relevant to governance and optimization. Submitted metrics may be
+stored, monitored, or visualized depending on the catalog’s capabilities.
+96 | Chapter 5: Polaris REST API
+This feature enables integration with monitoring systems and observability tooling to
+track table health and usage patterns over time.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles/metrics \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"metrics": {
+"row_count": 1823947,
+"last_query_duration_ms": 231,
+"fragmentation_score": 0.75
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/tables/customer_profiles/metrics"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"metrics": {
+"row_count": 1823947,
+"last_query_duration_ms": 231,
+"fragmentation_score": 0.75
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+• 200 OK: Metrics successfully submitted
+•
+• 404 Not Found: Table does not exist
+•
+•
+• 400 Bad Request: Invalid metric format
+Send Table Notifications
+Send a lightweight custom notification event for a table.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/tables/{table}/notifications
+Apache Iceberg REST Catalog Endpoints | 97
+This endpoint allows systems or users to send implementation-specific notification
+events related to a table. These events may be used to trigger downstream processes,
+communicate lifecycle changes (e.g., compaction complete), or signal state transitions
+to observability tools.
+The catalog implementation determines how notifications are handled, storing them,
+forwarding them to consumers, or using them for auditing or orchestration purposes.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles/notifications \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"notification": {
+"event_type": "compaction_complete",
+"summary": "Compaction job finished for June partition",
+"timestamp": "2025-06-20T13:45:00Z"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/tables/customer_profiles/notifications"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"notification": {
+"event_type": "compaction_complete",
+"summary": "Compaction job finished for June partition",
+"timestamp": "2025-06-20T13:45:00Z"
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+• 200 OK: Notification accepted
+•
+• 404 Not Found: Table not found
+•
+•
+• 400 Bad Request: Malformed or unsupported notification payload
+98 | Chapter 5: Polaris REST API
+Commit Updates to Multiple Tables
+Atomically commit metadata updates across multiple Iceberg tables using a single
+transaction.
+Endpoint:
+POST /v1/{prefix}/transactions/commit
+This endpoint performs a multi-table commit operation, allowing you to update
+the metadata of multiple Iceberg tables in a single atomic transaction. This ensures
+that either all updates succeed together or none are applied, preventing partial state
+changes and preserving catalog consistency.
+This operation is ideal for orchestrated schema updates, partitioning adjustments, or
+any workflow where consistency across tables is critical.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/transactions/commit \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"updates": [
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_profiles"
+},
+"base": "s3://warehouse/analytics/customer_profiles
+/metadata/00001.metadata.json",
+"metadata-location": "s3://warehouse/analytics/customer_profiles
+/metadata/00002.metadata.json"
+},
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "sales_summary"
+},
+"base": "s3://warehouse/analytics/sales_summary
+/metadata/00005.metadata.json",
+"metadata-location": "s3://warehouse/analytics/sales_summary
+/metadata/00006.metadata.json"
+}
+]
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/transactions/commit"
+headers = {
+Apache Iceberg REST Catalog Endpoints | 99
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"updates": [
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_profiles"
+},
+"base": "s3://warehouse/analytics/customer_profiles
+/metadata/00001.metadata.json",
+"metadata-location": "s3://warehouse/analytics/customer_profiles
+/metadata/00002.metadata.json"
+},
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "sales_summary"
+},
+"base": "s3://warehouse/analytics/sales_summary
+/metadata/00005.metadata.json",
+"metadata-location": "s3://warehouse/analytics/sales_summary
+/metadata/00006.metadata.json"
+}
+]
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.json())
+Sample response:
+{
+"results": [
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_profiles"
+},
+"metadata-location": "s3://warehouse/analytics/customer_profiles/metadata
+/00002.metadata.json",
+"table-uuid": "9bde37b3-fc9e-4b32-9b9e-abc123def456"
+},
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "sales_summary"
+},
+"metadata-location": "s3://warehouse/analytics/sales_summary/metadata
+/00006.metadata.json",
+"table-uuid": "2c51aa91-13fd-4404-874c-b0df41ec83d8"
+}
+100 | Chapter 5: Polaris REST API
+]
+}
+Error Handling:
+•
+• 409 Conflict: One or more updates failed validation (e.g., base metadata no
+longer matches); entire transaction aborted
+• 400 Bad Request: Malformed request payload
+•
+• 200 OK: All updates applied successfully and atomically
+•
+View API
+The View API provides endpoints for managing SQL-based views within a Polaris
+catalog namespace.
+Views in Apache Iceberg are named, versioned objects that encapsulate SQL query
+logic. They can reference tables or other views and are stored in the catalog alongside
+physical datasets. These endpoints enable clients to list, create, inspect, and delete
+views programmatically.
+Each view has a unique identifier consisting of a namespace and view name. Views
+are immutable once created and can be replaced atomically to create new versions
+with updated definitions. This enables safe evolution of business logic without dis‐
+rupting dependent consumers.
+The endpoints in this section mirror the structure of the Table API and include
+support for standard operations like checking existence, retrieving metadata, and
+managing lifecycle.
+List View Identifiers
+Retrieve a list of all views in a given namespace.
+Endpoint:
+GET /v1/{prefix}/namespaces/{namespace}/views
+This endpoint returns a list of all views defined within the specified namespace.
+The response includes the identifiers (namespace and name) for each view, allowing
+clients to enumerate existing view objects in the catalog. This is useful for user
+interfaces, discovery tools, or orchestration systems that need to browse available
+views.
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/views \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Apache Iceberg REST Catalog Endpoints | 101
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics/views"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"identifiers": [
+{
+"namespace": ["analytics"],
+"name": "customer_summary"
+},
+{
+"namespace": ["analytics"],
+"name": "daily_revenue"
+}
+]
+}
+Error Handling:
+• 404 Not Found: Namespace does not exist
+•
+• 200 OK: List of views returned successfully
+•
+Create a View
+Define or update an SQL-based view in the specified namespace.
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/views
+This endpoint creates a new view or replaces an existing one in the specified name‐
+space. An SQL SELECT statement defines a view, and clients must provide both the
+view’s identifier and its SQL definition in the request body. If a view with the same
+name already exists, it will be atomically replaced.
+Each view is versioned internally by the catalog, enabling safe updates to analytical
+logic over time without disrupting consumers.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/views \
+102 | Chapter 5: Polaris REST API
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"view-version": {
+"version-id": "v1",
+"schema-id": 1,
+"sql": "SELECT customer_id, COUNT(*) AS orders FROM orders
+GROUP BY customer_id"
+},
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics/views"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"view-version": {
+"version-id": "v1",
+"schema-id": 1,
+"sql": "SELECT customer_id, COUNT(*) AS orders FROM orders
+GROUP BY customer_id"
+},
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+• 200 OK: View created or replaced successfully
+•
+•
+• 400 Bad Request: Invalid SQL or missing required fields
+• 409 •
+Conflict: View version conflict (e.g., immutable update violation)
+Load View Metadata
+Retrieve metadata for a specific view, including its SQL definition and version.
+Apache Iceberg REST Catalog Endpoints | 103
+Endpoint:
+GET /v1/{prefix}/namespaces/{namespace}/views/{view}
+This endpoint fetches the full metadata for a given view, including its SQL definition,
+schema ID, and version identifier. It can be used by query engines, UI clients, or
+orchestration tools to display or process the view definition. The response includes
+the SQL query text that defines the view and other metadata associated with the
+current version.
+Sample cURL request:
+curl -X GET https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/views/customer_order_summary \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/views/customer_order_summary"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.get(url, headers=headers)
+print(response.json())
+Sample response:
+{
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+},
+"view-version": {
+"version-id": "v1",
+"schema-id": 1,
+"sql": "SELECT customer_id, COUNT(*) AS orders FROM orders
+GROUP BY customer_id"
+}
+}
+Error Handling:
+• 404 Not Found: View does not exist
+•
+• 200 OK: View metadata returned successfully
+•
+Replace a View
+Atomically replace an existing view with a new SQL definition.
+104 | Chapter 5: Polaris REST API
+Endpoint:
+POST /v1/{prefix}/namespaces/{namespace}/views
+This endpoint is used to replace an existing view by providing a new SQL definition.
+It uses the same request structure as view creation, and if the view already exists, the
+new version will overwrite the current one atomically.
+Replacing a view allows teams to evolve their business logic or analytical models
+safely while preserving the view’s name and identity. Each replacement should
+include a new version-id to track changes over time. (Note: If the view does not
+exist, this call will create it.)
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/views \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"view-version": {
+"version-id": "v2",
+"schema-id": 1,
+"sql": "SELECT customer_id, COUNT(*) AS orders, MAX(order_date)
+AS last_order FROM orders GROUP BY customer_id"
+},
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics/views"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"view-version": {
+"version-id": "v2",
+"schema-id": 1,
+"sql": "SELECT customer_id, COUNT(*) AS orders, MAX(order_date)
+AS last_order FROM orders GROUP BY customer_id"
+},
+"identifier": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+}
+}
+Apache Iceberg REST Catalog Endpoints | 105
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+• 200 OK: View replaced successfully
+•
+• 400 Bad Request: SQL is invalid or missing required fields
+•
+•
+• 409 Conflict: Conflicting version or schema constraints
+Drop a View
+Delete a view from the specified namespace.
+Endpoint:
+DELETE /v1/{prefix}/namespaces/{namespace}/views/{view}
+This endpoint deletes a view by name from the given namespace. Once deleted, the
+view and its associated SQL definition will no longer be available to consumers. This
+operation is irreversible and should be used with caution, especially in environments
+where dashboards, pipelines, or downstream systems reference views.
+The request does not require a body, and the server will return a success response if
+the view is successfully removed.
+Sample cURL request:
+curl -X DELETE https://polaris.example.com/api/catalog/v1/dev/namespaces
+/analytics/views/customer_order_summary \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/views/customer_order_summary"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.delete(url, headers=headers)
+print(response.status_code)
+Sample response:
+• 204 No Content: View deleted successfully
+•
+• 404 Not Found: View does not exist
+•
+•
+• 403 Forbidden: Insufficient permissions to delete the view
+106 | Chapter 5: Polaris REST API
+Check View Existence
+Determine whether a view exists in the specified namespace.
+Endpoint:
+HEAD /v1/{prefix}/namespaces/{namespace}/views/{view}
+This endpoint allows clients to check if a view exists without retrieving its full
+metadata. It returns a 200 OK status if the view is present and a 404 Not Found
+if the view does not exist. This is useful for lightweight validation in orchestration
+pipelines, UI navigation, or before attempting updates or deletions.
+No response body is returned.
+Sample cURL request:
+curl -I https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/views/customer_order_summary \
+-H "Authorization: Bearer <ACCESS_TOKEN>"
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/namespaces/analytics
+/views/customer_order_summary"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>"
+}
+response = requests.head(url, headers=headers)
+print(response.status_code)
+Sample Response Status Codes:
+• 200 OK: View exists
+•
+•
+• 404 Not Found: View does not exist
+• 403 Forbidden: Insufficient permissions to access the view
+•
+Rename a View
+Change the name of a view within or across namespaces.
+Endpoint:
+POST /v1/{prefix}/views/rename
+This endpoint renames a view by specifying the current identifier and the new
+desired identifier. The operation can also move the view to a different namespace.
+This is useful when evolving naming conventions or organizing views by domain.
+Apache Iceberg REST Catalog Endpoints | 107
+The rename is atomic and preserves the underlying view version and SQL definition.
+If the destination view name already exists, the operation will fail with a conflict
+error.
+Sample cURL request:
+curl -X POST https://polaris.example.com/api/catalog/v1/dev/views/rename \
+-H "Authorization: Bearer <ACCESS_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
+"from": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+},
+"to": {
+"namespace": ["sales"],
+"name": "customer_summary"
+}
+}'
+Sample Python request:
+import requests
+url = "https://polaris.example.com/api/catalog/v1/dev/views/rename"
+headers = {
+"Authorization": "Bearer <ACCESS_TOKEN>",
+"Content-Type": "application/json"
+}
+payload = {
+"from": {
+"namespace": ["analytics"],
+"name": "customer_order_summary"
+},
+"to": {
+"namespace": ["sales"],
+"name": "customer_summary"
+}
+}
+response = requests.post(url, headers=headers, json=payload)
+print(response.status_code)
+Sample response:
+• 200 OK: View renamed successfully
+•
+• 404 Not Found: Source view does not exist
+•
+•
+• 409 Conflict: Destination view already exists
+• 400 Bad Request: Invalid identifier format or namespace
+•
+108 | Chapter 5: Polaris REST API
+These endpoints provide robust capabilities for managing catalogs, namespaces,
+tables, and views within the Polaris platform, ensuring administrators have the flexi‐
+bility to effectively control resources.

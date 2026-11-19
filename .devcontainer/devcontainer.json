@@ -1,0 +1,40 @@
+{
+  "name": "Trino Polaris Lab",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspace",
+  "remoteEnv": {
+    "COMPOSE_PROJECT_NAME": "polaris_devcontainer",
+    "COMPOSE_FILE": "/workspace/.devcontainer/docker-compose.yml"
+  },
+  "forwardPorts": [8080, 8443, 3000, 8181, 16686, 2718],
+  "portsAttributes": {
+    "8080": { "label": "Trino UI", "onAutoForward": "notify" },
+    "8443": { "label": "Trino JDBC/HTTPS", "onAutoForward": "ignore" },
+    "3000": { "label": "Polaris Admin", "onAutoForward": "notify" },
+    "8888": { "label": "Spark Jupyter", "onAutoForward": "notify" },
+    "8181": { "label": "Polaris API", "onAutoForward": "ignore" },
+    "8182": { "label": "Polaris Health", "onAutoForward": "ignore" },
+    "5432": { "label": "PostgreSQL", "onAutoForward": "ignore" },
+    "4566": { "label": "LocalStack S3", "onAutoForward": "ignore" },
+    "2718": { "label": "Marimo", "onAutoForward": "notify" },
+    "16686": { "label": "Jaeger Tracing", "onAutoForward": "notify" }
+  },
+  "hostRequirements": {
+    "cpus": 8,
+    "memory": "32gb"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "postCreateCommand": "pip install --user requests boto3 'pyiceberg[s3fs,pyarrow]'",
+  "postStartCommand": "echo '=== Trino Polaris Lab ===' && echo 'Waiting for services...' && sleep 10 && echo 'Ports tab: Trino UI, Polaris Admin, Jaeger, Marimo. Spark Jupyter (8888) appears after starting the spark profile.' && echo 'Ready!'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "mtxr.sqltools",
+        "ms-python.python"
+      ]
+    }
+  }
+}

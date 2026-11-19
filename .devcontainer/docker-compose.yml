@@ -1,0 +1,268 @@
+services:
+  workspace:
+    # bookworm, not the default trixie: the docker-outside-of-docker feature's moby packages don't exist on trixie.
+    image: mcr.microsoft.com/devcontainers/python:3.12-bookworm
+    container_name: workspace
+    # Host network so localhost:<port> reaches the published ports and Codespaces can forward them.
+    network_mode: host
+    volumes:
+      - ..:/workspace:cached
+    environment:
+      POLARIS_URL: http://localhost:8181
+      JAEGER_URL: http://localhost:16686
+      TRINO_URL: https://localhost:8443
+    command: sleep infinity
+
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ../etc/catalog:/etc/trino/catalog
+      - ../etc/config.properties:/etc/trino/config.properties:ro
+      - ../etc/password-authenticator.properties:/etc/trino/password-authenticator.properties:ro
+      - ../etc/password.db:/etc/trino/password.db:ro
+      - ../etc/access-control.properties:/etc/trino/access-control.properties:ro
+      - ../etc/rules.json:/etc/trino/rules.json:ro
+      - ../etc/tls:/etc/trino/tls:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -k https://localhost:8443/v1/info || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      postgres:
+        condition: service_healthy
+      polaris-setup:
+        condition: service_completed_successfully
+      localstack-setup:
+        condition: service_completed_successfully
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino123
+      POSTGRES_DB: trino_demo
+    volumes:
+      - ../init/postgres:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trino -d trino_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: >
+      postgres
+        -c wal_level=logical
+
+  polaris-db-init:
+    image: postgres:16
+    container_name: polaris-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: trino
+      PGPASSWORD: trino123
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        psql -d trino_demo -tAc "SELECT 1 FROM pg_database WHERE datname='polaris'" | grep -q 1 || psql -d trino_demo -c "CREATE DATABASE polaris"
+        psql -d polaris -c "CREATE SCHEMA IF NOT EXISTS polaris_schema"
+        echo "Polaris database ready"
+    restart: "no"
+
+  polaris:
+    image: apache/polaris:1.8.0
+    container_name: polaris
+    ports:
+      - "8181:8181"
+      - "8182:8182"
+    depends_on:
+      polaris-db-init:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    environment:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      # Persist Polaris entities (catalogs, principals, roles, grants) in Postgres instead of memory.
+      # Realms are bootstrapped on first start; later starts find them and skip.
+      POLARIS_PERSISTENCE_TYPE: relational-jdbc
+      POLARIS_PERSISTENCE_AUTO_BOOTSTRAP_TYPES: relational-jdbc
+      POLARIS_PERSISTENCE_RELATIONAL_JDBC_DATABASE_TYPE: postgresql
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/polaris
+      QUARKUS_DATASOURCE_USERNAME: trino
+      QUARKUS_DATASOURCE_PASSWORD: trino123
+      POLARIS_BOOTSTRAP_CREDENTIALS: POLARIS,root,s3cr3t
+      POLARIS_REALM_CONTEXT_REALMS: POLARIS
+      QUARKUS_OTEL_SDK_DISABLED: "false"
+      QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://jaeger:4317"
+      POLARIS_FEATURES__ENABLE_GENERIC_TABLES_: "true"
+      POLARIS_FEATURES__ENABLE_CATALOG_FEDERATION_: "true"
+      POLARIS_FEATURES__ENABLE_FINE_GRAINED_UPDATE_TABLE_PRIVILEGES_: "true"
+      POLARIS_FEATURES__ALLOW_OVERLAPPING_CATALOG_URLS_: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8182/q/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  polaris-setup:
+    image: alpine/curl:8.22.0
+    container_name: polaris-setup
+    depends_on:
+      polaris:
+        condition: service_healthy
+      localstack-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ../init/polaris/setup.sh:/setup.sh:ro
+    entrypoint: ["/bin/sh", "/setup.sh"]
+    restart: "no"
+
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sts,iam
+      EAGER_SERVICE_LOADING: 1
+    volumes:
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health | grep -q '\"s3\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  localstack-setup:
+    image: localstack/localstack:3.0
+    container_name: localstack-setup
+    depends_on:
+      localstack:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        pip install awscli-local > /dev/null 2>&1;
+        awslocal --endpoint-url=http://localstack:4566 s3 mb s3://warehouse 2>/dev/null || true;
+        echo 'S3 bucket warehouse created';
+        awslocal --endpoint-url=http://localstack:4566 iam create-role --role-name polaris-s3-role --assume-role-policy-document '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"sts:AssumeRole\"}]}' 2>/dev/null || true;
+        awslocal --endpoint-url=http://localstack:4566 iam put-role-policy --role-name polaris-s3-role --policy-name s3-full --policy-document '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"s3:*\",\"Resource\":\"*\"}]}' 2>/dev/null || true;
+        echo 'IAM role polaris-s3-role created'
+      "
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+    restart: "no"
+
+  polaris-admin:
+    image: nginx:alpine
+    container_name: polaris-admin
+    ports:
+      - "3000:80"
+    volumes:
+      - ../admin/index.html:/usr/share/nginx/html/index.html:ro
+      - ../admin/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      polaris:
+        condition: service_healthy
+      polaris-manager:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      trino:
+        condition: service_healthy
+
+  polaris-manager:
+    image: python:3-alpine
+    container_name: polaris-manager
+    privileged: true
+    volumes:
+      - ../admin/manage.py:/app/manage.py:ro
+      - ../etc/catalog:/catalog
+      - ../admin/data:/data
+      - ../docker-compose.yml:/compose/docker-compose.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    command: python manage.py
+    environment:
+      TRINO_CONTAINER: trino
+    depends_on:
+      polaris:
+        condition: service_healthy
+
+  spark-jupyter:
+    build: ../spark
+    container_name: spark-jupyter
+    profiles: ["spark"]
+    ports:
+      - "8888:8888"
+    environment:
+      JUPYTER_TOKEN: spark123
+    volumes:
+      - ../spark/spark-defaults.conf:/usr/local/spark/conf/spark-defaults.conf:ro
+      - ../spark/notebooks:/home/jovyan/work:rw
+    depends_on:
+      polaris-setup:
+        condition: service_completed_successfully
+      localstack-setup:
+        condition: service_completed_successfully
+
+  marimo:
+    build: ../marimo
+    container_name: marimo
+    ports:
+      - "2718:2718"
+    volumes:
+      - ../marimo/notebooks:/home/marimo/notebooks:rw
+    depends_on:
+      polaris-setup:
+        condition: service_completed_successfully
+      localstack-setup:
+        condition: service_completed_successfully
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_REGION: us-east-1
+      TRINO_HOST: trino
+      POLARIS_HOST: polaris
+      S3_HOST: localstack
+      JAEGER_HOST: jaeger
+
+  dlt-earthquakes:
+    build:
+      context: ../dlt
+      dockerfile: ../.devcontainer/dlt/Dockerfile
+    container_name: dlt-earthquakes
+    depends_on:
+      polaris-setup:
+        condition: service_completed_successfully
+      localstack-setup:
+        condition: service_completed_successfully
+    restart: "no"
+
+volumes:
+  pgdata:
+  localstack-data:

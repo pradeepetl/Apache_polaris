@@ -1,0 +1,346 @@
+Defining Permissions in Catalog Roles
+Catalog roles in Apache Polaris are constructed using a comprehensive set of permis‐
+sions that define specific actions a user or service can perform within a catalog. These
+permissions allow for fine-grained control over tables, views, namespaces, and the
+catalog itself. Next, we delve into the key types of permissions and their associated
+privileges.
+Table Privileges
+Table permissions manage interactions with the data tables within a catalog. These
+privileges include:
+TABLE_CREATE
+Allows registering a new table within the catalog
+TABLE_DROP
+Permits deleting a table from the catalog
+TABLE_LIST
+Enables listing all tables in the catalog
+TABLE_READ_PROPERTIES
+Grants access to read the properties and metadata of a table, such as schema
+details and partition information
+TABLE_WRITE_PROPERTIES
+Allows modifying the properties of a table, including updating configurations.
+TABLE_READ_DATA
+Provides read-only access to the table data by issuing short-lived read-only
+storage credentials.
+TABLE_WRITE_DATA
+Grants permission to write data to a table by issuing short-lived read+write
+storage credentials
+TABLE_FULL_METADATA
+Includes all table-related privileges except TABLE_READ_DATA and
+TABLE_WRITE_DATA, which must be granted individually.
+These privileges ensure precise control over how data tables are created, modified,
+accessed, or removed within a catalog.
+Catalog Roles | 43
+View Privileges
+Views allow users to create and manage virtual representations of data. The privileges
+associated with views include:
+VIEW_CREATE
+Allows registering a new view within the catalog
+VIEW_DROP
+Enables dropping an existing view from the catalog
+VIEW_LIST
+Grants the ability to list all views in the catalog
+VIEW_READ_PROPERTIES
+Provides access to read the properties and metadata of a view
+VIEW_WRITE_PROPERTIES
+Allows updating the properties and configurations of a view
+VIEW_FULL_METADATA
+Grants all privileges related to views, including creation, deletion, and property
+management
+These permissions enable users to create and manage virtual datasets effectively while
+maintaining governance controls.
+Namespace Privileges
+Namespaces serve as logical groupings of tables and views, often corresponding to
+schemas or databases in other systems (the hierarchy being catalog → namespaces →
+tables/views). Namespace privileges include:
+NAMESPACE_CREATE
+Grants the ability to create new namespaces within a catalog
+NAMESPACE_DROP
+Permits deleting namespaces from a catalog
+NAMESPACE_LIST
+namespaces
+Enables listing objects (e.g., tables, views) within a namespace, including nested
+NAMESPACE_READ_PROPERTIES
+Provides access to read properties and metadata associated with namespaces
+44 | Chapter 3: The Apache Polaris Security Model
+NAMESPACE_WRITE_PROPERTIES
+Allows configuring properties for namespaces, such as defining organizational
+structures
+NAMESPACE_FULL_METADATA
+Grants all privileges for managing namespaces, including creation, deletion, and
+property updates
+These privileges allow for structured organization and management of datasets,
+ensuring a clear hierarchy within catalogs.
+Catalog Privileges
+Catalog-level privileges control overarching actions and governance across the cata‐
+log. These include:
+CATALOG_MANAGE_ACCESS
+Allows granting or revoking permissions on objects within a catalog and assign‐
+ing catalog roles to principal roles
+CATALOG_MANAGE_CONTENT
+Provides full control over catalog content, including managing metadata, tables,
+namespaces, and views. This privilege encompasses:
+• CATALOG_MANAGE_METADATA•
+• TABLE_FULL_METADATA•
+• NAMESPACE_FULL_METADATA•
+• VIEW_FULL_METADATA•
+• TABLE_WRITE_DATA•
+• TABLE_READ_DATA•
+• CATALOG_READ_PROPERTIES•
+• CATALOG_WRITE_PROPERTIES•
+CATALOG_MANAGE_METADATA
+Grants full control over metadata and roles within the catalog, including tables,
+namespaces, and views
+CATALOG_READ_PROPERTIES
+Enables listing catalogs and reading catalog properties
+CATALOG_WRITE_PROPERTIES
+Allows modifying catalog-wide settings and configurations
+Catalog Roles | 45
+These privileges ensure secure and centralized management of the catalog and
+its associated resources, enabling administrators to enforce governance policies
+effectively.
+By defining permissions at multiple levels—tables, views, namespaces, and catalogs—
+Apache Polaris offers a highly flexible, granular security model. This structure enables
+organizations to govern their data lakehouses with precision, ensuring that users
+and services have the exact level of access required to perform their roles while
+safeguarding sensitive resources.
+Assigning Catalog Roles to Principals
+In Polaris, catalog roles are assigned to principal roles, which grant privileges to
+individual users or groups. This assignment process ensures that each principal’s
+access to the resources within a catalog is governed by the permissions defined in
+their assigned roles. A single principal can have multiple principal roles with multiple
+catalog roles, allowing for complex and nuanced access policies.
+For example, a compliance officer and a user working as a data engineer might
+be assigned roles that grant them write access to tables for engineering tasks and
+read-only access to compliance-critical datasets.
+Benefits of catalog roles in Polaris
+Catalog roles provide several benefits in the Polaris architecture such as:
+Granular control
+By defining roles at the catalog level, Polaris allows for particular access policies
+tailored to an organization’s needs.
+Centralized governance
+Roles ensure consistent access controls across all resources within a catalog,
+reducing the risk of misconfiguration or accidental data exposure.
+Relationship between principal roles and catalog roles
+Principal roles and catalog roles are tightly integrated in Polaris’s RBAC model:
+Catalog roles
+Contributor)
+Define the permissions for a specific catalog (e.g., Catalog Reader, Catalog
+Principal roles
+ties
+Aggregate catalog roles, assigning them to principals based on their responsibili‐
+This relationship enables fine-grained control over access to Polaris resources.
+46 | Chapter 3: The Apache Polaris Security Model
+Best Practices for Catalog Roles
+Here are some principles to apply to maximize the manageability and security pro‐
+vided by your catalog roles:
+Proper planning
+Collect the requirements and needs before creating the first role. Play around
+with multiple ideas, consider how things may evolve, and plan for the future.
+Least privilege principle
+Assign roles that grant the minimum access required for a user’s responsibilities.
+Avoid overly broad permissions to reduce security risks.
+Role-naming conventions
+Use clear, consistent naming conventions for roles to simplify administration and
+reduce confusion.
+Regular reviews
+Regularly review roles and their assigned permissions to ensure they align with
+current business needs and compliance requirements.
+Testing and validation
+Test roles in a nonproduction environment to validate that permissions are
+applied correctly and do not inadvertently grant excess privileges.
+Catalog roles are central to the governance framework of Apache Polaris, providing
+the structure and flexibility needed to secure data lakehouses at scale.
+Principal Roles
+While principals define who interacts with Polaris, principal roles define what they
+can do. Principal roles act as a grouping of catalog roles, abstracting away the com‐
+plexities of managing permissions for individual users or services for each catalog.
+This abstraction allows administrators to enforce access policies consistently across
+multiple principals.
+What Are Principal Roles?
+A principal role in Polaris is a collection of permissions granted through catalog
+roles. By assigning a principal role to a principal, Polaris ensures that the user or
+service inherits the permissions associated with that role across the specified catalogs,
+namespaces, tables, or views, for example:
+•
+• The data engineer role might be granted catalog roles like Catalog Contributor,
+which includes permissions to write data, create namespaces, and update tables.
+Principal Roles | 47
+• The data scientist role might be granted a Catalog Reader role, allowing read-
+•
+only access to data.
+Benefits of Principal Roles
+Principal roles allow you to group the different access roles across catalogs for
+multiple principles and provide these benefits:
+Logical grouping
+Principal roles enable administrators to group permissions based on job func‐
+tions, making assigning access rights to new users or services easier.
+Scalability
+A single principal role can be assigned to multiple principals, reducing the
+administrative overhead of managing access for large teams or services.
+Consistency
+Roles ensure consistent access policies across the organization, minimizing the
+risk of accidental overpermission.
+Best Practices for Principal Roles
+Best practices to apply when designing your principal roles for best results include:
+Proper planning
+Collect the requirements and needs before creating the first role. Play around
+with multiple ideas, consider how things may evolve, and plan for the future.
+Define clear roles
+Create principal roles that align with organizational roles and responsibilities
+(e.g., data_engineer, data_scientist, compliance_officer).
+Least privilege principle
+Follow the principle of least privilege, granting only the access necessary for a
+principal to perform their job.
+Review regularly
+Periodically audit principal roles to ensure they align with current business needs
+and compliance requirements.
+Use naming conventions
+Adopt clear, consistent naming conventions for roles to reduce confusion and
+improve maintainability.
+Polaris provides a scalable, secure framework for managing access in complex lake‐
+house environments by integrating principals and principal roles. These entities work
+seamlessly with catalog roles to ensure every user and service interacts with data
+48 | Chapter 3: The Apache Polaris Security Model
+according to defined governance policies. In the next section, we’ll explore best prac‐
+tices for combining these elements to optimize security and operational efficiency in
+Polaris.
+Polaris Security Best Practices
+Apache Polaris provides a flexible security model tailored to fit various organizational
+use cases. The key to effective governance and access control lies in structuring cata‐
+logs, catalog roles, and principal roles to align with your organization’s operational
+and security needs. This section will explore everyday use cases and recommend best
+practices for setting up catalogs and principal roles for each scenario.
+When implementing these different use cases, follow these best practices:
+Align roles with business functions
+Define catalog and principal roles that closely mirror your organizational struc‐
+ture and workflows. This simplifies administration and ensures that access poli‐
+cies align with business needs.
+Apply the principle of least privilege
+Assign roles that grant only the permissions required for a principal’s responsibil‐
+ities. Avoid overly broad privileges to minimize security risks.
+Use hierarchical namespace structures
+Organize datasets into namespaces to group related data and simplify access
+control within catalogs.
+Assign privileges via roles on namespaces
+Prefer assigning catalog roles to namespaces, leveraging inheritance instead of
+individual tables and views. This drastically reduces the number of role assign‐
+ments and thus the overall complexity of your security model.
+Regularly audit roles and permissions
+Review roles and assignments regularly to ensure they remain aligned with
+organizational needs and compliance requirements.
+Leverage multi-catalog architecture
+Use Polaris’s multi-catalog capabilities to segment data based on sensitivity, use
+case, or organizational unit, to simplify management and improve security.
+Now let’s explore some of these Polaris use cases.
+Polaris Security Best Practices | 49
+Multi-Tenant Environments
+In multi-tenant environments, where multiple teams or business units share the same
+data lakehouse infrastructure, isolating data access while maintaining centralized
+governance is critical.
+Setup recommendations for multi-tenant environments include:
+Catalogs
+Create separate catalogs for each team or business unit (e.g., marketing, finance,
+engineering). Each catalog serves as an isolated workspace for the respective
+team’s data.
+Catalog roles
+Define catalog roles specific to each team, such as:
+• Marketing_Admin: Full access to manage tables and views within the market‐
+•
+ing catalog.
+• Marketing_Analyst: Read-only access to marketing datasets.
+•
+Principal roles
+for example:
+Assign principal roles to users or services based on their team and job function,
+•
+• Marketing_Data_Engineer: Map to Marketing_Admin.
+•
+• Marketing_Analyst: Map to Marketing_Analyst.
+This structure ensures that teams have access only to their data while enabling
+centralized management of roles and permissions. You can also leverage the “realms”
+feature in Polaris that allows you to create isolated environments with their catalogs
+and principles. This feature will be discussed in a later chapter.
+Cross-Team Collaboration
+When multiple teams need to collaborate on shared datasets, you can configure
+shared access to specific catalogs or namespaces while limiting access to other
+resources.
+Setup recommendations for cross-team collaboration include:
+Catalogs
+Create a shared catalog for collaborative datasets (e.g., cross_team_data) while
+maintaining separate catalogs for each team’s private data.
+Catalog roles
+Define roles for shared access, for example:
+50 | Chapter 3: The Apache Polaris Security Model
+• Shared_Contributor: Grants read and write access to collaborative datasets.
+•
+• Shared_Viewer: Grants read-only access.
+•
+Principal roles
+Assign shared access roles to specific users or teams:
+• A data engineer from one team might have both Shared_Contributor and a
+•
+team-specific admin role.
+• Analysts from multiple teams might have Shared_Viewer roles.
+•
+This approach promotes collaboration while maintaining clear boundaries around
+private data.
+Compliance and Sensitive Data Governance
+Organizations handling sensitive data—such as personally identifiable information
+(PII) or financial records—need governance to comply with regulations like GDPR or
+HIPAA.
+Setup recommendations for handling sensitive data include:
+Catalogs
+public_data).
+Create separate catalogs for sensitive and nonsensitive data (e.g., sensitive_data,
+Catalog roles
+Sensitive_Data_Admin grants full access to manage sensitive data, limited to
+trusted personnel
+Sensitive_Data_Viewer grants restricted read-only access for auditors or com‐
+pliance teams
+Principal roles
+Assign compliance teams Sensitive_Data_Viewer roles.
+Ensure sensitive data roles are assigned only to trusted users with proper creden‐
+tials and monitoring.
+By segregating sensitive data and using role-based access controls, you can meet
+compliance requirements while minimizing the risk of unauthorized access.
+Cloud-Native Deployments
+In cloud-native deployments, where data is distributed across multiple storage pro‐
+viders, access control must account for resource distribution and external catalog
+integration.
+Polaris Security Best Practices | 51
+Setup recommendations for cloud-native deployments include:
+Catalogs
+Azure_Blob).
+Create catalogs for each cloud provider or storage type (e.g., AWS_S3,
+Catalog roles
+catalog.
+Cloud_Storage_Admin grants full access to manage resources in a specific storage
+Cloud_Storage_Viewer grants read-only access for monitoring or cost analysis.
+Principal roles
+Assign roles to cloud operations teams based on their provider focus, e.g.,
+AWS_Admin, Azure_Viewer.
+External catalog integration
+Use Polaris’s ability to integrate external catalogs to centralize visibility while
+delegating catalog-specific permissions to the external systems.
+This setup provides clear boundaries and governance while leveraging Polaris as a
+unifying interface across multi-cloud deployments.
+Organizations can create a secure, scalable, and collaborative environment with
+Apache Polaris while maintaining robust governance and flexibility by tailoring cata‐
+log and principal role configurations to specific use cases.
+Conclusion
+Apache Polaris’s robust security model provides a scalable, flexible framework for
+managing access control in modern data lakehouses. By leveraging catalog roles,
+principal roles, and RBAC, Polaris enables governance across catalogs, namespaces,
+tables, and views. This architecture allows organizations to meet diverse use cases,
+from multi-tenant environments to compliance-driven data governance, while sim‐
+plifying role management and ensuring consistent enforcement of access policies.
+However, the true power of Polaris extends beyond its internal capabilities. Organ‐
+izations often rely on multiple catalog implementations in today’s complex data
+ecosystems, each with unique features and benefits. Polaris addresses this challenge
+by acting as a unifying layer that integrates with external catalogs through the Apache
+Iceberg REST Specification. This capability enables centralized discoverability of all
+Iceberg tables, regardless of their underlying catalog, making Polaris a pivotal tool
+for unifying the catalog ecosystem. In the next chapter, we’ll explore how Polaris
+connects with external catalogs like Nessie, Gravitino, and others to bring cohesion
+to distributed data environments and maximize the flexibility of your lakehouse
+architecture.

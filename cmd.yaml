@@ -1,0 +1,6 @@
+
+curl -s http://localhost:8181/api/catalog/v1/polaris_warehouse/namespaces/shop/tables -H "Authorization: Bearer $TOKEN" -H "Polaris-Realm: POLARIS" -H "Polaris-Realm: POLARIS"
+
+curl -s http://localhost:8181/api/management/v1/catalogs -H "Authorization: Bearer $TOKEN" -H "Polaris-Realm: POLARIS"
+
+TOKEN=$(curl -s -X POST http://localhost:8181/api/catalog/v1/oauth/tokens -d 'grant_type=client_credentials&client_id=root&client_secret=s3cr3t&scope=PRINCIPAL_ROLE:ALL' | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
