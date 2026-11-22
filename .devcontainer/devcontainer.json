@@ -21,8 +21,8 @@
     "16686": { "label": "Jaeger Tracing", "onAutoForward": "notify" }
   },
   "hostRequirements": {
-    "cpus": 8,
-    "memory": "32gb"
+    "cpus": 4,
+    "memory": "16gb"
   },
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
